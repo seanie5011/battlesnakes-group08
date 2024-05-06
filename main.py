@@ -14,6 +14,7 @@ import random
 import typing
 import math
 
+
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
 # TIP: If you open your Battlesnake URL in a browser you should see this data
@@ -31,6 +32,7 @@ def info() -> typing.Dict:
 
 # start is called when your Battlesnake begins a game
 def start(game_state: typing.Dict):
+    print("REPLIT")
     print("GAME START")
 
 
@@ -48,7 +50,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # We've included code to prevent your Battlesnake from moving backwards
     head = game_state["you"]["body"][0]  # Coordinates of your head
-    body = game_state["you"]["body"][1:]  # Coordinates of each "bodypart" (bodypart after head)
+    body = game_state["you"]["body"][
+        1:]  # Coordinates of each "bodypart" (bodypart after head)
     print(f"COORDS: {head}")
 
     # Prevent the Battlesnake from moving out of bounds
@@ -70,15 +73,19 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # Prevent the Battlesnake from colliding with itself
     # check each bodypart and make sure we will not collide with it in the next move
     for bodypart in body:
-        if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head["y"]:  # bodypart is directly left of head, don't move left
+        if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
+                "y"]:  # bodypart is directly left of head, don't move left
             is_move_safe["left"] = False
-        if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head["y"]:  # bodypart is directly right of head, don't move right
+        if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
+                "y"]:  # bodypart is directly right of head, don't move right
             is_move_safe["right"] = False
-        if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head["x"]:  # bodypart is directly below head, don't move down
+        if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
+                "x"]:  # bodypart is directly below head, don't move down
             is_move_safe["down"] = False
-        if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head["x"]:  # bodypart is directly above head, don't move up
+        if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
+                "x"]:  # bodypart is directly above head, don't move up
             is_move_safe["up"] = False
-    
+
     print(f"MOVES AFTER BODYCHECK: {is_move_safe}")
 
     # Prevent the Battlesnake from colliding with other Battlesnakes
@@ -90,15 +97,19 @@ def move(game_state: typing.Dict) -> typing.Dict:
             continue
         # check each opponents bodyparts (including their head)
         for bodypart in opponent["body"]:
-            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head["y"]:  # bodypart is directly left of head, don't move left
+            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
+                    "y"]:  # bodypart is directly left of head, don't move left
                 is_move_safe["left"] = False
-            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head["y"]:  # bodypart is directly right of head, don't move right
+            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
+                    "y"]:  # bodypart is directly right of head, don't move right
                 is_move_safe["right"] = False
-            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head["x"]:  # bodypart is directly below head, don't move down
+            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
+                    "x"]:  # bodypart is directly below head, don't move down
                 is_move_safe["down"] = False
-            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head["x"]:  # bodypart is directly above head, don't move up
+            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
+                    "x"]:  # bodypart is directly above head, don't move up
                 is_move_safe["up"] = False
-    
+
     print(f"MOVES AFTER SNAKECHECK: {is_move_safe}")
 
     # Are there any safe moves left?
@@ -108,7 +119,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
             safe_moves.append(move)
 
     if len(safe_moves) == 0:
-        print(f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
+        print(
+            f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
         return {"move": "down"}
 
     print(f"SAFE: {safe_moves}")
@@ -124,12 +136,12 @@ def move(game_state: typing.Dict) -> typing.Dict:
     for index, move in enumerate(safe_moves):
         next_x = head["x"] + moves_to_coord_change_x[move]
         next_y = head["y"] + moves_to_coord_change_y[move]
-        
+
         distance = (next_x - foods[0]["x"])**2 + (next_y - foods[0]["y"])**2
         if distance < best_distance:
             best_index = index
             best_distance = distance
-    
+
     # if we didnt find anything
     if best_index == -1:
         # Choose a random move from the safe ones
