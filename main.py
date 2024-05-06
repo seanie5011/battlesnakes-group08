@@ -50,8 +50,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # We've included code to prevent your Battlesnake from moving backwards
     head = game_state["you"]["body"][0]  # Coordinates of your head
-    body = game_state["you"]["body"][
-        1:]  # Coordinates of each "bodypart" (bodypart after head)
+    body = game_state["you"]["body"][1:]  # Coordinates of each "bodypart" (bodypart after head)
     print(f"COORDS: {head}")
 
     # Prevent the Battlesnake from moving out of bounds
