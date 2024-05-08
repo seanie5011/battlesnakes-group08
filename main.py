@@ -13,7 +13,7 @@
 import random
 import typing
 import math
-
+from queue import PriorityQueue
 
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
@@ -185,6 +185,56 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
+
+
+def a_star_search(start, goal, game_state):
+    # Setup initial nodes and costs
+    open_set = PriorityQueue()
+    open_set.put((0, start))
+    came_from = {}
+    g_score = {node: float('inf') for node in game_state['board']['cells']}
+    g_score[start] = 0
+    f_score = {node: float('inf') for node in game_state['board']['cells']}
+    f_score[start] = heuristic(start, goal)
+
+    while not open_set.empty():
+        current = open_set.get()[1]
+
+        if current == goal:
+            return reconstruct_path(came_from, current)
+
+        for neighbor in get_neighbors(current, game_state):
+            tentative_g_score = g_score[current] + 1  # assuming cost of 1 to move to a neighbor
+            if tentative_g_score < g_score[neighbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
+                if not any(neighbor == n[1] for n in open_set.queue):
+                    open_set.put((f_score[neighbor], neighbor))
+
+    return []
+
+def heuristic(a, b):
+    # Manhattan distance on a square grid
+    return abs(a['x'] - b['x']) + abs(a['y'] - b['y'])
+
+def get_neighbors(node, game_state):
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    neighbors = []
+    for dx, dy in directions:
+        nx, ny = node['x'] + dx, node['y'] + dy
+        if 0 <= nx < game_state['board']['width'] and 0 <= ny < game_state['board']['height']:
+            if not any(snake['x'] == nx and snake['y'] == ny for snake in game_state['you']['body']):
+                neighbors.append({'x': nx, 'y': ny})
+    return neighbors
+
+def reconstruct_path(came_from, current):
+    path = []
+    while current in came_from:
+        path.append(current)
+        current = came_from[current]
+    path.reverse()  # optional, path will be from goal to start
+    return path
 
 
 # Start server when `python main.py` is run
