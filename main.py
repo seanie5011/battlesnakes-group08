@@ -26,15 +26,14 @@ def info() -> typing.Dict:
     return {
         "apiversion": "1",
         "author": "SORZWE",
-        "color": "#00E4FF",  # TODO: Choose color
-        "head": "smart-caterpillar",  # TODO: Choose head
-        "tail": "weight",  # TODO: Choose tail
+        "color": "#00E4FF",
+        "head": "smart-caterpillar",
+        "tail": "weight",
     }
 
 
 # start is called when your Battlesnake begins a game
 def start(game_state: typing.Dict):
-    print("REPLIT")
     print("GAME START")
 
 
@@ -47,9 +46,10 @@ def end(game_state: typing.Dict):
 # Valid moves are "up", "down", "left", or "right"
 # See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
+    # assume all moves are valid at the start
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
-    # We've included code to prevent your Battlesnake from moving backwards
+    # get our head and body
     head = game_state["you"]["body"][0]  # Coordinates of your head
     body = game_state["you"]["body"][
         1:]  # Coordinates of each "bodypart" (bodypart after head)
@@ -117,47 +117,22 @@ def move(game_state: typing.Dict) -> typing.Dict:
             f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
         return {"move": "down"}
 
-    # Move towards food instead of random, to regain health and survive longer
-    # choose whichever safe move is closest to any food
-    # TODO: account for all foods, now just first one in list
-    foods = game_state['board']['food']
-    best_index = -1
-    best_distance = math.inf
-    moves_to_coord_change_x = {"up": 0, "down": 0, "left": -1, "right": 1}
-    moves_to_coord_change_y = {"up": 1, "down": -1, "left": 0, "right": 0}
-    for index, move in enumerate(safe_moves):
-        next_x = head["x"] + moves_to_coord_change_x[move]
-        next_y = head["y"] + moves_to_coord_change_y[move]
-
-        distance = (next_x - foods[0]["x"])**2 + (next_y - foods[0]["y"])**2
-        if distance < best_distance:
-            best_index = index
-            best_distance = distance
-
-    # if we didnt find anything
-    if best_index == -1:
-        # Choose a random move from the safe ones
-        next_move = random.choice(safe_moves)
-    # otherwise pick best option
-    else:
-        next_move = safe_moves[best_index]
-
-    print(f"MOVE {game_state['turn']}: {next_move}")
-
-    # advance the game state using each safe move
-    # check the value of that new state
-    # pick the one with the highest score
+    # get all other snakes
     opponents = [
         snake["name"] for snake in game_state["board"]["snakes"]
         if snake["name"] != "SORZWE"
     ]
 
-    best_move = next_move
+    # want to get the best move
+    best_move = random.choice(safe_moves)  # by default make random move
     best_score = float('-inf')
     depth = 1  # Depth can be adjusted based on performance needs
     alpha = float('-inf')
     beta = float('inf')
 
+    # advance the game state using each safe move
+    # check the value of that new state
+    # pick the one with the highest score
     for move in safe_moves:
         new_state = get_state_from_move(game_state, "SORZWE", move)
         score = brs(alpha, beta, depth, 'MAX', new_state, "SORZWE", opponents)
@@ -165,6 +140,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
         if score > best_score:
             best_score = score
             best_move = move
+
+    print(f"MOVE {game_state['turn']}: {best_move}")
 
     return {"move": best_move}
 
