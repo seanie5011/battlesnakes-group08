@@ -16,6 +16,7 @@ import math
 
 from brs import *
 
+
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
 # TIP: If you open your Battlesnake URL in a browser you should see this data
@@ -92,13 +93,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
             continue
         # check each opponents bodyparts (including their head)
         for bodypart in opponent["body"]:
-            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head["y"]:  # bodypart is directly left of head, don't move left
+            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
+                    "y"]:  # bodypart is directly left of head, don't move left
                 is_move_safe["left"] = False
-            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head["y"]:  # bodypart is directly right of head, don't move right
+            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
+                    "y"]:  # bodypart is directly right of head, don't move right
                 is_move_safe["right"] = False
-            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head["x"]:  # bodypart is directly below head, don't move down
+            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
+                    "x"]:  # bodypart is directly below head, don't move down
                 is_move_safe["down"] = False
-            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head["x"]:  # bodypart is directly above head, don't move up
+            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
+                    "x"]:  # bodypart is directly above head, don't move up
                 is_move_safe["up"] = False
 
     # Are there any safe moves left?
@@ -142,22 +147,25 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # advance the game state using each safe move
     # check the value of that new state
     # pick the one with the highest score
-    opponents = [snake["name"] for snake in game_state["board"]["snakes"] if snake["name"] != "SORZWE"]
-    
+    opponents = [
+        snake["name"] for snake in game_state["board"]["snakes"]
+        if snake["name"] != "SORZWE"
+    ]
+
     best_move = next_move
     best_score = float('-inf')
-    depth = 4  # Depth can be adjusted based on performance needs
+    depth = 1  # Depth can be adjusted based on performance needs
     alpha = float('-inf')
     beta = float('inf')
 
     for move in safe_moves:
         new_state = get_state_from_move(game_state, "SORZWE", move)
         score = brs(alpha, beta, depth, 'MAX', new_state, "SORZWE", opponents)
-        
+
         if score > best_score:
             best_score = score
             best_move = move
-            
+
     return {"move": best_move}
 
 

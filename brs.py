@@ -1,7 +1,9 @@
 import typing
 from copy import deepcopy
 
-def brs(alpha: int, beta: int, depth: int, turn: str, game_state: typing.Dict, player_name: str, opponents: list[str]) -> int:
+
+def brs(alpha: int, beta: int, depth: int, turn: str, game_state: typing.Dict,
+        player_name: str, opponents: list[str]) -> int:
     """
     Implements the Best-Reply Search (BRS) algorithm.
     
@@ -14,7 +16,7 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: typing.Dict, p
     Returns:
     int: The heuristic value of the node.
     """
-    
+
     # Base case: if depth is 0, return the evaluation of the board.
     if depth <= 0:
         return evaluate(game_state, player_name)
@@ -30,11 +32,17 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: typing.Dict, p
         next_turn = 'MAX'
 
     best_value = float('-inf') if turn == 'MAX' else float('inf')
-    
+
     # Explore each move.
     for agent_name, move in moves:
         new_state = get_state_from_move(game_state, agent_name, move)
-        value = -brs(-beta, -alpha, depth - 1, next_turn, new_state, agent_name, [player_name, *[opponent for opponent in opponents if opponent != agent_name]])
+        value = -brs(
+            -beta, -alpha, depth - 1, next_turn, new_state, agent_name, [
+                player_name, *[
+                    opponent
+                    for opponent in opponents if opponent != agent_name
+                ]
+            ])
 
         if turn == 'MAX':
             if value >= beta:
@@ -51,12 +59,16 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: typing.Dict, p
 
     return best_value
 
+
 def get_possible_moves(game_state: typing.Dict, player: str) -> list[str]:
     # This function should return a list of all possible moves for the given player.
     # returns a list like [[name, move], [name, move], etc.]
-    return [[player, "up"], [player, "down"], [player, "left"], [player, "right"]]
+    return [[player, "up"], [player, "down"], [player, "left"],
+            [player, "right"]]
 
-def get_state_from_move(game_state: typing.Dict, player: str, move: list[str]) -> typing.Dict:
+
+def get_state_from_move(game_state: typing.Dict, player: str,
+                        move: list[str]) -> typing.Dict:
     # This function should modify the game state by making the specified move.
     new_game_state = deepcopy(game_state)
 
@@ -72,7 +84,7 @@ def get_state_from_move(game_state: typing.Dict, player: str, move: list[str]) -
     new_bodyparts = []
     for bodypart in bodyparts[0::-1]:
         new_bodyparts.insert(0, bodypart)
-    
+
     moves_to_coord_change_x = {"up": 0, "down": 0, "left": -1, "right": 1}
     moves_to_coord_change_y = {"up": 1, "down": -1, "left": 0, "right": 0}
     next_x = bodyparts[0]["x"] + moves_to_coord_change_x[move]
@@ -81,6 +93,7 @@ def get_state_from_move(game_state: typing.Dict, player: str, move: list[str]) -
 
     new_game_state["board"]["snakes"][this_index]["body"] = new_bodyparts
     return new_game_state
+
 
 def evaluate(game_state: typing.Dict, player: typing.AnyStr) -> int:
     """A simple evaluation function that could prioritize staying alive"""
@@ -99,7 +112,6 @@ def evaluate(game_state: typing.Dict, player: typing.AnyStr) -> int:
     score = 0
 
     # Prefer staying towards the center
-    score += (min(head['x'], board_width - head['x'] - 1) + 
-              min(head['y'], board_height - head['y'] - 1))
+    score += (board_width - head['x']) + (board_height - head['y'])
 
-    return score
+    return int(score)
