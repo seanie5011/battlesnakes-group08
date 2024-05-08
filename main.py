@@ -85,6 +85,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
                 "x"]:  # bodypart is directly above head, don't move up
             is_move_safe["up"] = False
 
+    # if hard to follow the and logic, basically need to check both x and y coordinate at the same time
+    """for bodypart in body:
+        if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+            is_move_safe["left"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+            is_move_safe["right"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+            is_move_safe["down"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+            is_move_safe["up"] = False"""
+
     print(f"MOVES AFTER BODYCHECK: {is_move_safe}")
 
     # Prevent the Battlesnake from colliding with other Battlesnakes
@@ -128,7 +139,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # choose whichever safe move is closest to any food
     # TODO: account for all foods, now just first one in list
     foods = game_state['board']['food']
-    best_index = -1
+    """best_index = -1
     best_distance = math.inf
     moves_to_coord_change_x = {"up": 0, "down": 0, "left": -1, "right": 1}
     moves_to_coord_change_y = {"up": 1, "down": -1, "left": 0, "right": 0}
@@ -147,7 +158,30 @@ def move(game_state: typing.Dict) -> typing.Dict:
         next_move = random.choice(safe_moves)
     # otherwise pick best option
     else:
-        next_move = safe_moves[best_index]
+        next_move = safe_moves[best_index]"""
+
+    # Check for food distances
+    moves_to_coord_change = {
+        "up": (0, 1),
+        "down": (0, -1),
+        "left": (-1, 0),
+        "right": (1, 0)
+    }
+
+    # Initialize best move data
+    min_distance = float('inf')
+    next_move = "down"  # default move if no safe moves are available
+
+    # Check each move's distance to all food items
+    for move, (dx, dy) in moves_to_coord_change.items():
+        if is_move_safe[move]:
+            next_head_x = head["x"] + dx
+            next_head_y = head["y"] + dy
+            for food in foods:
+                distance = abs(next_head_x - food["x"]) + abs(next_head_y - food["y"])
+                if distance < min_distance:
+                    min_distance = distance
+                    next_move = move
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
