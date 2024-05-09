@@ -4,11 +4,13 @@ Group 8s code for Battlesnake written in Python.
 
 Get started at [play.battlesnake.com](https://play.battlesnake.com).
 
-See the [Battlesnake API Docs](https://docs.battlesnake.com/api) for more detail. 
+See the [Battlesnake API Docs](https://docs.battlesnake.com/api) for more detail.
+
+*NOTE: This project was conducted in May 2024. Please make sure Battlesnake has not changed significantly since then.*
 
 ## Technologies Used
 
-This project uses [Python 3](https://www.python.org/) and [Flask](https://flask.palletsprojects.com/).
+This project uses [Python 3](https://www.python.org/) and [Flask](https://flask.palletsprojects.com/). Tested on a Windows 10 machine with Python `3.10.11`.
 
 ## Run Battlesnake
 
