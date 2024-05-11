@@ -5,7 +5,7 @@ from collections import deque
 
 
 def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
-        player_name: str, opponents: list[str]) -> int:
+        player_id: str, opponents: list[str]) -> int:
     """
     Implements the Best-Reply Search (BRS) algorithm.
     
@@ -21,16 +21,17 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
 
     # if depth is 0, return the evaluation of the board
     if depth <= 0:
-        return evaluate(game_state, player_name)
+        return evaluate(game_state, player_id)
 
     # Determine the moves based on the turn
     # MAX is us
     if turn == 'MAX':
-        moves = get_possible_moves(game_state, player_name)
+        moves = get_possible_moves(game_state, player_id)
         next_turn = 'MIN'
     # MIN are the enemies
     else:
         moves = []  # Extend this list based on the number of players
+
         for opponent in opponents:
             moves.extend(get_possible_moves(game_state, opponent))
         next_turn = 'MAX'
@@ -43,7 +44,7 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
         new_state = get_state_from_move(game_state, agent_name, move)
         value = -brs(
             -beta, -alpha, depth - 1, next_turn, new_state, agent_name, [
-                player_name, *[
+                player_id, *[
                     opponent
                     for opponent in opponents if opponent != agent_name
                 ]
@@ -83,7 +84,7 @@ def get_state_from_move(game_state: dict, player: str,
     this_index = -1
     for snake in new_game_state["board"]["snakes"]:
         this_index += 1
-        if snake["name"] == player:
+        if snake["id"] == player:
             break
         else:
             continue
@@ -138,13 +139,13 @@ def evaluate(game_state: dict, player: str) -> int:
 
     # Find the closest food and calculate its distance
     for food in food_positions:
-        food_distance = np.sqrt((head['x'] - food['x']) ** 2 + (head['y'] - food['y']) ** 2)
+        food_distance = np.sqrt((head['x'] - food['x'])**2  + (head['y'] - food['y'])**2)
         if food_distance < closest_food_distance:
             closest_food_distance = food_distance
             closest_food = food
 
     food_score = 0
-    high_food_score = 50  # This is the reward for successfully eating food
+    high_food_score = 20  # This is the reward for successfully eating food
 
     # Check if the closest food is reachable and if after eating it, the snake can still reach its tail
     if closest_food and head['x'] == closest_food['x'] and head['y'] == closest_food['y']:
@@ -157,13 +158,15 @@ def evaluate(game_state: dict, player: str) -> int:
         # Check if the snake can still reach its tail after eating
         if can_reach_tail(simulated_game_state, simulated_snake['body'][0], tail, simulated_snake['body']):
             food_score += high_food_score
+
         else:
             # Apply a significant penalty if eating leads to being trapped
-            food_score -= 1000
+            food_score -= 100
+
 
     path_score = 0
-    if not can_reach_tail(game_state, head, tail, this_snake['body']):
-        path_score = -10000  # Apply penalty if the snake is currently in a position where it can't reach its tail
+    if len(this_snake['body']) > game_state['board']['height'] and not can_reach_tail(game_state, head, tail, this_snake['body']):
+        path_score = -100  # Apply penalty if the snake is currently in a position where it can't reach its tail
 
     # Combine the scores
     return int(food_score + path_score)
