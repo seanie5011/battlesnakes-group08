@@ -147,7 +147,7 @@ def evaluate(game_state: dict, player_id: str) -> int:
 
     food_score = 0
     high_food_score = 20  # This is the reward for successfully eating food
-
+    path_score = 0
     # Check if the closest food is reachable and if after eating it, the snake can still reach its tail
     if closest_food and head['x'] == closest_food['x'] and head['y'] == closest_food['y']:
         # Simulate eating the closest food
@@ -162,15 +162,15 @@ def evaluate(game_state: dict, player_id: str) -> int:
 
         else:
             # Apply a significant penalty if eating leads to being trapped
-            food_score -= 100
+            path_score = - 100
 
 
     if not can_reach_tail(game_state, head, tail,this_snake['body']):
-        food_score = -100  # Apply penalty if the snake is currently in a position where it can't
+        path_score = -100  # Apply penalty if the snake is currently in a position where it can't
     # reach its tail
 
     # Combine the scores
-    return int(food_score)
+    return int(food_score + path_score)
 
 
 def can_reach_tail(game_state, head, tail, snake_body):

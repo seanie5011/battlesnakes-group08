@@ -57,6 +57,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # i.e bottomleft corner is (0, 0), topright is (width-1, height-1)
     board_width = game_state['board']['width']
     board_height = game_state['board']['height']
+    tail = game_state["you"]["body"][-1]
 
     if head["x"] + 1 == board_width:
         is_move_safe["right"] = False
@@ -83,7 +84,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     for snake in all_snakes:
         if snake["id"] != my_id:  # skip self, check other snakes
             is_teammate = (snake["name"] == "SORZWE") and (snake["id"] != my_id)  # TODO mb need it later
-            for bodypart in snake["body"]:
+            for bodypart in snake["body"][:-1]:
                 if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
                     is_move_safe["left"] = False
                 if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
@@ -123,6 +124,11 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # pick the one with the highest score
     for move in safe_moves:
         new_state = get_state_from_move(game_state, my_id, move)
+        simulated_head = new_state["you"]["body"][0]
+        simulated_body = new_state["you"]["body"][1:-1]
+        if not can_reach_tail(new_state, simulated_head, tail, simulated_body):
+            is_move_safe[move] = False
+
         score = brs(alpha, beta, depth, 'MAX', new_state, my_id, opponents)
 
         if score > best_score:
