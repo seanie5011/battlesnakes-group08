@@ -46,19 +46,86 @@ def end(game_state: typing.Dict):
 # Valid moves are "up", "down", "left", or "right"
 # See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
-    # assume all moves are valid at the start
-    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
-
-    # get our head and body
-    head = game_state["you"]["body"][0]  # Coordinates of your head
-    body = game_state["you"]["body"][
-        1:]  # Coordinates of each "bodypart" (bodypart after head)
+    # Collect info about all snakes
+    snakes = game_state['board']['snakes']
+    my_snakes = [snake for snake in snakes if snake['name'] == 'SORZWE']
+    opponents = [snake for snake in snakes if snake['name'] != 'SORZWE']
 
     # Prevent the Battlesnake from moving out of bounds
     # if width is 11, then maximum x coordinate is 10
     # i.e bottomleft corner is (0, 0), topright is (width-1, height-1)
-    board_width = game_state['board']['width']
-    board_height = game_state['board']['height']
+    # Process each of your snakes
+    moves = {}
+    for my_snake in my_snakes:
+
+        head = my_snake['body'][0]
+        body = my_snake['body'][1:]  # body excluding the head
+        is_move_safe = {"up": True, "down": True, "left": True, "right": True}
+        # Boundary collision avoidance
+        board_width = game_state['board']['width']
+        board_height = game_state['board']['height']
+        is_move_safe = check_boundaries(head, board_width, board_height, is_move_safe)
+
+
+        # Avoid colliding with yourself and your other snake
+        for segment in body:
+            self_collision_checks(segment, head, is_move_safe)
+
+        # Avoid colliding with the other SORZWE snake
+        for other in my_snakes:
+            if other['id'] != my_snake['id']:  # Avoid checking against itself
+                for segment in other['body']:
+                    self_collision_checks(segment, head, is_move_safe)
+
+        # Avoid collisions with all snakes
+        for opponent in opponents:
+            for segment in opponent['body']:
+                self_collision_checks(segment, head, is_move_safe)
+
+        safe_moves = [move for move, safe in is_move_safe.items() if safe]
+        if not safe_moves:
+            return {"move": "down"}  # Default move if no safe moves
+
+        # want to get the best move
+        best_move = random.choice(safe_moves)  # by default make random move
+        best_score = float('-inf')
+        depth = 2  # Depth can be adjusted based on performance needs, interestingly, having depth too deep will cause
+        # too
+        # much computation and cause our snake to hit boarder before managed to make calculation (praise the RL ^_^)
+        alpha = float('-inf')
+        beta = float('inf')
+
+    # advance the game state using each safe move
+    # check the value of that new state
+    # pick the one with the highest score
+        for move in safe_moves:
+            new_state = get_state_from_move(game_state, "SORZWE", move)
+            score = brs(alpha, beta, depth, 'MAX', new_state, "SORZWE", opponents)
+
+            if score > best_score:
+                best_score = score
+                best_move = move
+
+
+
+        print(f"MOVE {game_state['turn']}: {best_move}")
+
+    """return {"move": best_move}"""
+    return {"move": best_move}  # TODO: maybe enough? cuz each code controls 1 snake?
+
+
+def self_collision_checks(segment, head, is_move_safe):
+    if (segment["x"], segment["y"]) == (head["x"] - 1, head["y"]):
+        is_move_safe["left"] = False
+    if (segment["x"], segment["y"]) == (head["x"] + 1, head["y"]):
+        is_move_safe["right"] = False
+    if (segment["x"], segment["y"]) == (head["x"], head["y"] - 1):
+        is_move_safe["down"] = False
+    if (segment["x"], segment["y"]) == (head["x"], head["y"] + 1):
+        is_move_safe["up"] = False
+
+
+def check_boundaries(head, board_width, board_height, is_move_safe):
     if head["x"] + 1 == board_width:
         is_move_safe["right"] = False
     if head["x"] == 0:
@@ -67,83 +134,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
         is_move_safe["down"] = False
     if head["y"] + 1 == board_height:
         is_move_safe["up"] = False
-
-    # Prevent the Battlesnake from colliding with itself
-    # check each bodypart and make sure we will not collide with it in the next move
-    for bodypart in body:
-        if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
-                "y"]:  # bodypart is directly left of head, don't move left
-            is_move_safe["left"] = False
-        if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
-                "y"]:  # bodypart is directly right of head, don't move right
-            is_move_safe["right"] = False
-        if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
-                "x"]:  # bodypart is directly below head, don't move down
-            is_move_safe["down"] = False
-        if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
-                "x"]:  # bodypart is directly above head, don't move up
-            is_move_safe["up"] = False
-
-    # Prevent the Battlesnake from colliding with other Battlesnakes
-    # check every opponent and make sure we do not collide with any of their bodyparts in the next move
-    opponents = game_state['board']['snakes']
-    for opponent in opponents:
-        # dont do anything if it is us
-        if opponent["name"] == "SORZWE":
-            continue
-        # check each opponents bodyparts (including their head)
-        for bodypart in opponent["body"]:
-            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
-                    "y"]:  # bodypart is directly left of head, don't move left
-                is_move_safe["left"] = False
-            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
-                    "y"]:  # bodypart is directly right of head, don't move right
-                is_move_safe["right"] = False
-            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
-                    "x"]:  # bodypart is directly below head, don't move down
-                is_move_safe["down"] = False
-            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
-                    "x"]:  # bodypart is directly above head, don't move up
-                is_move_safe["up"] = False
-
-    # Are there any safe moves left?
-    safe_moves = []
-    for move, isSafe in is_move_safe.items():
-        if isSafe:
-            safe_moves.append(move)
-
-    if len(safe_moves) == 0:
-        print(
-            f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
-        return {"move": "down"}
-
-    # get all other snakes
-    opponents = [
-        snake["name"] for snake in game_state["board"]["snakes"]
-        if snake["name"] != "SORZWE"
-    ]
-
-    # want to get the best move
-    best_move = random.choice(safe_moves)  # by default make random move
-    best_score = float('-inf')
-    depth = 1  # Depth can be adjusted based on performance needs
-    alpha = float('-inf')
-    beta = float('inf')
-
-    # advance the game state using each safe move
-    # check the value of that new state
-    # pick the one with the highest score
-    for move in safe_moves:
-        new_state = get_state_from_move(game_state, "SORZWE", move)
-        score = brs(alpha, beta, depth, 'MAX', new_state, "SORZWE", opponents)
-
-        if score > best_score:
-            best_score = score
-            best_move = move
-
-    print(f"MOVE {game_state['turn']}: {best_move}")
-
-    return {"move": best_move}
+    return is_move_safe
 
 
 # Start server when `python main.py` is run
