@@ -5,7 +5,7 @@ from collections import deque
 
 
 def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
-        player_id: str, opponents: list[str]) -> int:
+        player_id: str, opponents: list) -> int:
     """
     Implements the Best-Reply Search (BRS) algorithm.
     
@@ -33,22 +33,21 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
         moves = []  # Extend this list based on the number of players
 
         for opponent in opponents:
-            moves.extend(get_possible_moves(game_state, opponent))
+            # TODO: pass only the enemies here, am i right tho?
+            if opponent["name"] != "SORZWE":
+                moves.extend(get_possible_moves(game_state, opponent["id"]))
         next_turn = 'MAX'
 
     best_value = float('-inf') if turn == 'MAX' else float('inf')
 
     # Explore each move
-    for agent_name, move in moves:
+    for agent_id, move in moves:
         # get the new state and evaluate it
-        new_state = get_state_from_move(game_state, agent_name, move)
+        new_state = get_state_from_move(game_state, agent_id, move)
+        filtered_opponents = [opponent for opponent in opponents if opponent['id'] != agent_id]
+
         value = -brs(
-            -beta, -alpha, depth - 1, next_turn, new_state, agent_name, [
-                player_id, *[
-                    opponent
-                    for opponent in opponents if opponent != agent_name
-                ]
-            ])
+            -beta, -alpha, depth - 1, next_turn, new_state, agent_id, filtered_opponents)
 
         # set alpha or beta depending
         if turn == 'MAX':
@@ -70,6 +69,7 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
 def get_possible_moves(game_state: dict, player: str) -> list[str]:
     # This function should return a list of all possible moves for the given player.
     # returns a list like [[name, move], [name, move], etc.]
+
     return [[player, "up"], [player, "down"], [player, "left"],
             [player, "right"]]
 
@@ -81,38 +81,39 @@ def get_state_from_move(game_state: dict, player: str,
     new_game_state = deepcopy(game_state)
 
     # get this snakes bodyparts
-    this_index = -1
-    for snake in new_game_state["board"]["snakes"]:
-        this_index += 1
+    snake_index = -1
+    for idx, snake in enumerate(new_game_state["board"]["snakes"]):
         if snake["id"] == player:
+            snake_index = idx
             break
-        else:
-            continue
-    bodyparts = new_game_state["board"]["snakes"][this_index]["body"]
-    # move them all up, simulate the game moving forward
-    new_bodyparts = []
-    for bodypart in bodyparts[0::-1]:
-        new_bodyparts.insert(0, bodypart)
 
-    # move the head according to the action
-    moves_to_coord_change_x = {"up": 0, "down": 0, "left": -1, "right": 1}
-    moves_to_coord_change_y = {"up": 1, "down": -1, "left": 0, "right": 0}
-    next_x = bodyparts[0]["x"] + moves_to_coord_change_x[move]
-    next_y = bodyparts[0]["y"] + moves_to_coord_change_y[move]
-    new_bodyparts.insert(0, {"x": next_x, "y": next_y})
+    bodyparts = new_game_state["board"]["snakes"][snake_index]["body"]
 
-    # set this in the new game state
-    new_game_state["board"]["snakes"][this_index]["body"] = new_bodyparts
+    # Calculate the new head position based on the move
+    direction_map = {
+        "up": (0, 1),
+        "down": (0, -1),
+        "left": (-1, 0),
+        "right": (1, 0)
+    }
+    dx, dy = direction_map[move]
+    new_head = {"x": bodyparts[0]["x"] + dx, "y": bodyparts[0]["y"] + dy}
+
+    new_bodyparts = [new_head] + bodyparts[:-1]  # Removes the last part, as it's not eating
+
+    # Update the snake's body in the new game state
+    new_game_state["board"]["snakes"][snake_index]["body"] = new_bodyparts
+
     return new_game_state
 
 
-def evaluate(game_state: dict, player: str) -> int:
+def evaluate(game_state: dict, player_id: str) -> int:
     """A simple evaluation function that could prioritize staying alive"""
     # get the current snake
     this_index = -1
     for snake in game_state["board"]["snakes"]:
         this_index += 1
-        if snake["name"] == player:
+        if snake["id"] == player_id:
             break
         else:
             continue
@@ -139,7 +140,7 @@ def evaluate(game_state: dict, player: str) -> int:
 
     # Find the closest food and calculate its distance
     for food in food_positions:
-        food_distance = np.sqrt((head['x'] - food['x'])**2  + (head['y'] - food['y'])**2)
+        food_distance = np.sqrt((head['x'] - food['x']) ** 2 + (head['y'] - food['y']) ** 2)
         if food_distance < closest_food_distance:
             closest_food_distance = food_distance
             closest_food = food
@@ -164,12 +165,12 @@ def evaluate(game_state: dict, player: str) -> int:
             food_score -= 100
 
 
-    path_score = 0
-    if len(this_snake['body']) > game_state['board']['height'] and not can_reach_tail(game_state, head, tail, this_snake['body']):
-        path_score = -100  # Apply penalty if the snake is currently in a position where it can't reach its tail
+    if not can_reach_tail(game_state, head, tail,this_snake['body']):
+        food_score = -100  # Apply penalty if the snake is currently in a position where it can't
+    # reach its tail
 
     # Combine the scores
-    return int(food_score + path_score)
+    return int(food_score)
 
 
 def can_reach_tail(game_state, head, tail, snake_body):

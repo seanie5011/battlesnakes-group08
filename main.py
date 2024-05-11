@@ -50,7 +50,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # get our head and body
     my_id = game_state["you"]["id"]  # TODO: will this work?????????????
     head = game_state["you"]["body"][0]  # Coordinates of your head
-    body = game_state["you"]["body"][1:]  # Coordinates of each "bodypart" (bodypart after head)
+    body = game_state["you"]["body"][1:-1]  # TODO: (bodypart after head, tail not needed??)
     all_snakes = game_state['board']['snakes']
     # Prevent the Battlesnake from moving out of bounds
     # if width is 11, then maximum x coordinate is 10
@@ -67,7 +67,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     if head["y"] + 1 == board_height:
         is_move_safe["up"] = False
 
-        # Self-collision avoidance
+    # Self-collision avoidance
     for bodypart in body:
         if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
             is_move_safe["left"] = False
@@ -81,7 +81,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # Avoid collisions with all snakes, including another "SORZWE"
 
     for snake in all_snakes:
-        if snake["id"] != my_id:  # Avoid self, check other snakes
+        if snake["id"] != my_id:  # skip self, check other snakes
             is_teammate = (snake["name"] == "SORZWE") and (snake["id"] != my_id)  # TODO mb need it later
             for bodypart in snake["body"]:
                 if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
@@ -108,7 +108,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     opponents = []
     for snake in all_snakes:
         if snake["id"] != my_id:
-            opponents.append(snake["id"])  # TODO right now just add id into brs, maybe entire object needed later??
+            opponents.append(snake)  # TODO maybe entire object needed??
 
     # want to get the best move
     best_move = random.choice(safe_moves)  # by default make random move
