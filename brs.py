@@ -5,7 +5,7 @@ from collections import deque
 
 
 def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
-        player_id: str, opponents: list) -> int:
+        player_id: str, opponents: list, is_move_safe:dict) -> int:
     """
     Implements the Best-Reply Search (BRS) algorithm.
     
@@ -21,12 +21,13 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
 
     # if depth is 0, return the evaluation of the board
     if depth <= 0:
-        return evaluate(game_state, player_id)
+
+        return evaluate(game_state, player_id, is_move_safe)
 
     # Determine the moves based on the turn
     # MAX is us
     if turn == 'MAX':
-        moves = get_possible_moves(game_state, player_id)
+        moves = get_possible_moves(game_state, player_id, is_move_safe)
         next_turn = 'MIN'
     # MIN are the enemies
     else:
@@ -35,7 +36,7 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
         for opponent in opponents:
             # TODO: pass only the enemies here, am i right tho?
             if opponent["name"] != "SORZWE":
-                moves.extend(get_possible_moves(game_state, opponent["id"]))
+                moves.extend(get_possible_moves(game_state, player_id, is_move_safe))
         next_turn = 'MAX'
 
     best_value = float('-inf') if turn == 'MAX' else float('inf')
@@ -47,7 +48,7 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
         filtered_opponents = [opponent for opponent in opponents if opponent['id'] != agent_id]
 
         value = -brs(
-            -beta, -alpha, depth - 1, next_turn, new_state, agent_id, filtered_opponents)
+            -beta, -alpha, depth - 1, next_turn, new_state, agent_id, filtered_opponents, is_move_safe)
 
         # set alpha or beta depending
         if turn == 'MAX':
@@ -66,50 +67,38 @@ def brs(alpha: int, beta: int, depth: int, turn: str, game_state: dict,
     return best_value
 
 
-def get_possible_moves(game_state: dict, player: str) -> list[str]:
+def get_possible_moves(game_state: dict, playerid: str, is_move_safe: dict) -> list:
     # This function should return a list of all possible moves for the given player.
     # returns a list like [[name, move], [name, move], etc.]
 
-    return [[player, "up"], [player, "down"], [player, "left"],
-            [player, "right"]]
+
+    # Filter the directions based on the is_move_safe dictionary
+    return [[playerid, "up"], [playerid, "down"], [playerid, "left"],
+            [playerid, "right"]]
 
 
-def get_state_from_move(game_state: dict, player: str,
-                        move: list[str]) -> dict:
-    # This function should modify the game state by making the specified move.
-    # make sure we get a deepcopy to not modify the original
+def get_state_from_move(game_state, player, move):
     new_game_state = deepcopy(game_state)
+    direction_map = {"up": (0, 1), "down": (0, -1), "left": (-1, 0), "right": (1, 0)}
 
-    # get this snakes bodyparts
-    snake_index = -1
-    for idx, snake in enumerate(new_game_state["board"]["snakes"]):
-        if snake["id"] == player:
-            snake_index = idx
-            break
-
-    bodyparts = new_game_state["board"]["snakes"][snake_index]["body"]
-
-    # Calculate the new head position based on the move
-    direction_map = {
-        "up": (0, 1),
-        "down": (0, -1),
-        "left": (-1, 0),
-        "right": (1, 0)
-    }
+    snake_index = next(i for i, snake in enumerate(new_game_state["board"]["snakes"]) if snake["id"] == player)
+    snake = new_game_state["board"]["snakes"][snake_index]
+    head = snake["body"][0]
     dx, dy = direction_map[move]
-    new_head = {"x": bodyparts[0]["x"] + dx, "y": bodyparts[0]["y"] + dy}
-
-    new_bodyparts = [new_head] + bodyparts[:-1]  # Removes the last part, as it's not eating
+    new_head = {'x': head['x'] + dx, 'y': head['y'] + dy}
 
     # Update the snake's body in the new game state
-    new_game_state["board"]["snakes"][snake_index]["body"] = new_bodyparts
+    new_body = [new_head] + snake["body"][:-1]  # Move the head, drop the tail if not eating
+    new_game_state["board"]["snakes"][snake_index]["body"] = new_body
 
     return new_game_state
 
 
-def evaluate(game_state: dict, player_id: str) -> int:
+def evaluate(game_state: dict, player_id: str, is_move_safe: dict) -> int:
     """A simple evaluation function that could prioritize staying alive"""
     # get the current snake
+    viable_moves = simulate_moves_and_check_reachability(game_state, player_id, is_move_safe)
+
     this_index = -1
     for snake in game_state["board"]["snakes"]:
         this_index += 1
@@ -146,36 +135,25 @@ def evaluate(game_state: dict, player_id: str) -> int:
             closest_food = food
 
     food_score = 0
-    high_food_score = 20  # This is the reward for successfully eating food
-    path_score = 0
     # Check if the closest food is reachable and if after eating it, the snake can still reach its tail
-    if closest_food and head['x'] == closest_food['x'] and head['y'] == closest_food['y']:
-        # Simulate eating the closest food
-        simulated_game_state = deepcopy(game_state)
-        simulated_snake = simulated_game_state["board"]["snakes"][this_index]
-        # Simulate head moving to food position
-        simulated_snake['body'].insert(0, {'x': closest_food['x'], 'y': closest_food['y']})
+    for move in viable_moves:
 
-        # Check if the snake can still reach its tail after eating
-        if can_reach_tail(simulated_game_state, simulated_snake['body'][0], tail, simulated_snake['body']):
-            food_score += high_food_score
-
-        else:
-            # Apply a significant penalty if eating leads to being trapped
-            path_score = - 100
-
-
-    if not can_reach_tail(game_state, head, tail,this_snake['body']):
-        path_score = -100  # Apply penalty if the snake is currently in a position where it can't
-    # reach its tail
+        new_state = get_state_from_move(game_state, player_id, move)
+        snake = next(s for s in new_state["board"]["snakes"] if s["id"] == player_id)
+        new_head = snake["body"][0]
+        new_tail = snake["body"][-1]
+        new_body = snake["body"][1:-1]
+        if closest_food and new_head['x'] == closest_food['x'] and new_head['y'] == closest_food['y']:
+            food_score += 20
 
     # Combine the scores
-    return int(food_score + path_score)
+    return int(food_score)
 
 
-def can_reach_tail(game_state, head, tail, snake_body):
+def can_reach_tail(game_state, head, tail, snake_body, is_move_safe):
     """ Check if there is a path from head to tail using A* """
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Possible movements
+
     open_set = []
     heapq.heappush(open_set, (0, head['x'], head['y']))  # Priority queue of open nodes
     came_from = {}  # For path reconstruction if necessary
@@ -183,11 +161,12 @@ def can_reach_tail(game_state, head, tail, snake_body):
     g_score = {(head['x'], head['y']): 0}  # Cost from start to node
     f_score = {(head['x'], head['y']): manhattan_distance(head, tail)}  # Estimated total cost from start to goal
 
-    visited = set((part['x'], part['y']) for part in snake_body[:-1])  # Initial occupied cells, exclude tail
+    visited = set((part['x'], part['y']) for part in snake_body[1:-1])  # Initial occupied cells,
 
     while open_set:
         _, x, y = heapq.heappop(open_set)
-
+        print("1",(x,y))
+        print("2", (tail['x'], tail['y']))
         if (x, y) == (tail['x'], tail['y']):  # Check if reached the tail
             return True
 
@@ -206,6 +185,26 @@ def can_reach_tail(game_state, head, tail, snake_body):
                         heapq.heappush(open_set, (f_score[(nx, ny)], nx, ny))
 
     return False
+
+
+def simulate_moves_and_check_reachability(game_state, player_id, is_move_safe):
+    safe_moves = [move for move, is_safe in is_move_safe.items() if is_safe]
+    viable_moves = []
+
+    for move in safe_moves:
+        # Simulate the move
+        new_state = get_state_from_move(game_state, player_id, move)
+
+        # Get the snake's new head position after the move
+        snake = next(s for s in new_state["board"]["snakes"] if s["id"] == player_id)
+        new_head = snake["body"][0]
+        tail = snake["body"][-1]
+
+        # Check if the snake can reach its tail after this move
+        if can_reach_tail(new_state, new_head, tail, snake["body"], is_move_safe):
+            viable_moves.append(move)
+
+    return viable_moves
 
 
 def manhattan_distance(point1, point2):

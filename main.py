@@ -80,11 +80,10 @@ def move(game_state: typing.Dict) -> typing.Dict:
             is_move_safe["up"] = False
 
     # Avoid collisions with all snakes, including another "SORZWE"
-
     for snake in all_snakes:
         if snake["id"] != my_id:  # skip self, check other snakes
             is_teammate = (snake["name"] == "SORZWE") and (snake["id"] != my_id)  # TODO mb need it later
-            for bodypart in snake["body"][:-1]:
+            for bodypart in snake["body"]:
                 if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
                     is_move_safe["left"] = False
                 if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
@@ -118,18 +117,22 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # much computation and cause our snake to hit boarder before managed to make calculation (praise the RL ^_^)
     alpha = float('-inf')
     beta = float('inf')
-
+    print("check" , is_move_safe)
     # advance the game state using each safe move
     # check the value of that new state
     # pick the one with the highest score
-    for move in safe_moves:
+
+    for move in ["up", "down", "left", "right"]:
         new_state = get_state_from_move(game_state, my_id, move)
         simulated_head = new_state["you"]["body"][0]
-        simulated_body = new_state["you"]["body"][1:-1]
-        if not can_reach_tail(new_state, simulated_head, tail, simulated_body):
+        simulated_body = new_state["you"]["body"]
+        simulated_tail = new_state["you"]["body"][-1]
+        print("check tail",simulated_tail)
+        if not can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, is_move_safe):
             is_move_safe[move] = False
-
-        score = brs(alpha, beta, depth, 'MAX', new_state, my_id, opponents)
+    print("can reach tail move", is_move_safe)
+    for move in safe_moves:
+        score = brs(alpha, beta, depth, 'MAX', game_state, my_id, opponents, is_move_safe)
 
         if score > best_score:
             best_score = score
