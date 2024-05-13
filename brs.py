@@ -150,39 +150,40 @@ def evaluate(game_state: dict, player_id: str, is_move_safe: dict) -> int:
     return int(food_score)
 
 
-def can_reach_tail(game_state, head, tail, snake_body, is_move_safe):
-    """ Check if there is a path from head to tail using A* """
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # Possible movements
+def manhattan_distance(a, b):
+    return abs(a['x'] - b['x']) + abs(a['y'] - b['y'])
 
+
+def can_reach_tail(game_state, head, tail, snake_body, direction, is_move_safe):
+    # Adjust starting direction based on the 'direction' parameter directly using the map
+    direction_map = {'up': (0, 1), 'down': (0, -1), 'left': (-1, 0), 'right': (1, 0)}
+    dx, dy = direction_map[direction]
+    start_x, start_y = head['x'] + dx, head['y'] + dy
+
+    # Begin A* search from this new start point
     open_set = []
-    heapq.heappush(open_set, (0, head['x'], head['y']))  # Priority queue of open nodes
-    came_from = {}  # For path reconstruction if necessary
-
-    g_score = {(head['x'], head['y']): 0}  # Cost from start to node
-    f_score = {(head['x'], head['y']): manhattan_distance(head, tail)}  # Estimated total cost from start to goal
-
-    visited = set((part['x'], part['y']) for part in snake_body[1:-1])  # Initial occupied cells,
+    heapq.heappush(open_set, (0, start_x, start_y))
+    came_from = {}
+    g_score = {(start_x, start_y): 0}
+    f_score = {(start_x, start_y): manhattan_distance({'x': start_x, 'y': start_y}, tail)}
+    visited = set((part['x'], part['y']) for part in snake_body[0:-1])  # Exclude tail for body check
 
     while open_set:
         _, x, y = heapq.heappop(open_set)
-        print("1",(x,y))
-        print("2", (tail['x'], tail['y']))
-        if (x, y) == (tail['x'], tail['y']):  # Check if reached the tail
+        visited.add((x, y))
+        if (x, y) == (tail['x'], tail['y']):
             return True
 
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < game_state['board']['width'] and 0 <= ny < game_state['board']['height']:
-                if (nx, ny) in visited:
-                    continue
-                tentative_g_score = g_score.get((x, y), float('inf')) + 1  # Assuming each move has a cost of 1
-
+        for move in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
+            nx, ny = x + move[0], y + move[1]
+            if 0 <= nx < game_state['board']['width'] and 0 <= ny < game_state['board']['height'] \
+                    and (nx, ny) not in visited:
+                tentative_g_score = g_score.get((x, y), float('inf')) + 1
                 if tentative_g_score < g_score.get((nx, ny), float('inf')):
                     came_from[(nx, ny)] = (x, y)
                     g_score[(nx, ny)] = tentative_g_score
                     f_score[(nx, ny)] = tentative_g_score + manhattan_distance({'x': nx, 'y': ny}, tail)
-                    if (nx, ny) not in [i[1:] for i in open_set]:  # Check if not in open_set
-                        heapq.heappush(open_set, (f_score[(nx, ny)], nx, ny))
+                    heapq.heappush(open_set, (f_score[(nx, ny)], nx, ny))
 
     return False
 
@@ -201,12 +202,7 @@ def simulate_moves_and_check_reachability(game_state, player_id, is_move_safe):
         tail = snake["body"][-1]
 
         # Check if the snake can reach its tail after this move
-        if can_reach_tail(new_state, new_head, tail, snake["body"], is_move_safe):
+        if can_reach_tail(new_state, new_head, tail, snake["body"], move, is_move_safe):
             viable_moves.append(move)
 
     return viable_moves
-
-
-def manhattan_distance(point1, point2):
-    """Calculate the Manhattan distance between two points"""
-    return abs(point1['x'] - point2['x']) + abs(point1['y'] - point2['y'])
