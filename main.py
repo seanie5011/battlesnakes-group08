@@ -117,31 +117,30 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # much computation and cause our snake to hit boarder before managed to make calculation (praise the RL ^_^)
     alpha = float('-inf')
     beta = float('inf')
-    print("check" , is_move_safe)
+    print("check" , safe_moves)
     # advance the game state using each safe move
     # check the value of that new state
     # pick the one with the highest score
 
-    for move in list(safe_moves):  # Use list to copy for safe iteration
-        new_state = get_state_from_move(game_state, my_id, move)
-        simulated_head = new_state["you"]["body"][0]
-        simulated_body = new_state["you"]["body"]
-        simulated_tail = new_state["you"]["body"][-1]
+    valid_safe_moves = safe_moves.copy()
+    for move in safe_moves:
+        new_state, snake_index = get_state_from_move(game_state, my_id, move)
+        simulated_head = new_state["board"]["snakes"][snake_index]["body"][0]
+        simulated_body = new_state["board"]["snakes"][snake_index]["body"]
+        simulated_tail = new_state["board"]["snakes"][snake_index]["body"][-1]
+        print(f"Simulated move {move} -> new head: {simulated_head}")
         if not can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
             is_move_safe[move] = False
-            safe_moves.remove(move)
+            valid_safe_moves.remove(move)
 
-    print("can reach tail move", is_move_safe)
-    for move in safe_moves:
-        score = brs(alpha, beta, depth, 'MAX', game_state, my_id, opponents, is_move_safe)
-
-        """if score > best_score:
+    print("can reach tail move", valid_safe_moves)
+    for move in valid_safe_moves:
+        """score = brs(alpha, beta, depth, 'MAX', game_state, my_id, opponents, is_move_safe)
+        if score > best_score:
             best_score = score
             best_move = move"""
-        best_move = random.choice(safe_moves)
-
+        best_move = random.choice(valid_safe_moves)
     print(f"MOVE {game_state['turn']}: {best_move}")
-
     return {"move": best_move}
 
 
