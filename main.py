@@ -140,7 +140,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # Determine valid safe moves where the snake can still reach its tail
     valid_safe_moves = []
-    print("safe moves: ", safe_moves)
+    # print("safe moves: ", safe_moves)
     for move in safe_moves:
         new_state, snake_index = get_state_from_move(game_state, my_name, move)
         simulated_head = new_state["board"]["snakes"][snake_index]["body"][0]
@@ -149,7 +149,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
         if can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
             valid_safe_moves.append(move)
 
-    print("Valid safe moves:", valid_safe_moves)
+    # print("Valid safe moves:", valid_safe_moves)
 
     # Evaluate each valid safe move using BRS
     best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves)
@@ -158,13 +158,12 @@ def move(game_state: typing.Dict) -> typing.Dict:
     alpha = float('-inf')
     beta = float('inf')
 
-
     for move in valid_safe_moves:
         new_state, _ = get_state_from_move(game_state, my_name, move)
         score = brs(alpha, beta, depth, 'MAX', new_state, my_name, opponents, is_move_safe)
-        print("getting score ??????? ", score)
+        # print("getting score ??????? ", score)
         if score > best_score:
-            print("getting score update", score)
+            # print("getting score update", score)
             best_score = score
             best_move = move
 

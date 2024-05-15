@@ -40,7 +40,7 @@ def brs(alpha: float, beta: float, depth: int, turn: str, game_state: dict,
 
     # Explore each move
     for agent_name, move in moves:
-        print(f"Trying Move: {move} for {agent_name}, Alpha: {alpha}, Beta: {beta}")
+        # print(f"Trying Move: {move} for {agent_name}, Alpha: {alpha}, Beta: {beta}")
 
         # get the new state and evaluate it
         new_state, _ = get_state_from_move(game_state, agent_name, move)
@@ -129,12 +129,11 @@ def evaluate(game_state: dict, player_name: str, is_move_safe: dict) -> int:
         if snake["name"] != player_name:
             other_head = snake["body"][0]
             separation_score += calculate_separation_score(this_head, other_head)
-            if food_location and manhattan_distance(food_location, other_head) > 5:
-                separation_score += food_score
+            if food_location and manhattan_distance(food_location, other_head) > 2:
+                separation_score += food_score * 100
     # You can adjust the influence of separation_score by changing its weighting factor
     total_score = food_score + separation_score
-    print(
-        f"Evaluating for {player_name}: Food Score = {food_score}, Separation Score = {separation_score}, Total Score = {total_score}")
+    # print(f"Evaluating for {player_name}: Food Score = {food_score}, Separation Score = {separation_score}, Total Score = {total_score}")
 
     return int(total_score)
 
@@ -158,11 +157,10 @@ def calculate_food_score(game_state, head):
 def calculate_separation_score(head_one, head_two):
     """Calculate a score that rewards distance between two heads."""
     distance = manhattan_distance(head_one, head_two)
-    if distance < 5:
-        return distance * 20  # Reward for each unit of distance between the snakes
+    if distance < 10:
+        return 5 * np.log(10 * distance)
     else:
-        return 100
-
+        return 0
 
 def manhattan_distance(a, b):
     return abs(a['x'] - b['x']) + abs(a['y'] - b['y'])
