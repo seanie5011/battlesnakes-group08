@@ -73,13 +73,14 @@ class Food:
         for location in locations:
             self.locations_map[location[0], location[1]] = 1
         
-    def end_of_turn(self, snake_locations):
+    def end_of_turn(self, snake_locations, force_spawn=False):
         '''
         Function to be called at the end of each step. 
         Adapted from 
         https://github.com/BattlesnakeOfficial/rules/blob/44b6b946661d42401f5a33b74303cd9071d0db18/standard.go#L392
         '''
-        if random.random() < self.FOOD_SPAWN_CHANCE:
+        # spawn according to chance (or can be forced)
+        if random.random() < self.FOOD_SPAWN_CHANCE or force_spawn:
             self.spawn_food(snake_locations)
                     
     def get_food_map(self):

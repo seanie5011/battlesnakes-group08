@@ -332,6 +332,7 @@ class Snakes:
 
         if len(snake_spawn_locations) == 0:
             starting_positions = get_random_coordinates(self.map_size, number_of_snakes)
+            print(starting_positions)
         else:
             error_message = "the number of coordinates in snake_spawn_locations must match the number of snakes"
             assert len(snake_spawn_locations) == self.number_of_snakes, error_message

@@ -410,7 +410,8 @@ class BattlesnakeGym(gym.Env):
                 number_of_snakes_alive += 1
                 reward[i] += self.rewards.get_reward("another_turn", i, episodes)
         
-        self.food.end_of_turn(self.snakes.get_snake_51_map())
+        # force spawn food if there are none currently
+        self.food.end_of_turn(self.snakes.get_snake_51_map(), force_spawn=(not np.any(self.food.locations_map==1)))
 
         if self.number_of_snakes > 1 and np.sum(snakes_alive) <= 1:
             done = True
@@ -422,7 +423,7 @@ class BattlesnakeGym(gym.Env):
         else:
             done = False
             
-        snake_alive_dict = {i: a for i, a in enumerate(np.logical_not(snakes_alive).tolist())}
+        snake_dead_dict = {i: a for i, a in enumerate(np.logical_not(snakes_alive).tolist())}
         self.turn_count += 1
 
         snakes_health = {}
@@ -443,7 +444,7 @@ class BattlesnakeGym(gym.Env):
             print("final json {}".format(self.get_json()))
             raise
             
-        return self._get_observation(), reward, snake_alive_dict, {'current_turn': self.turn_count,
+        return self._get_observation(), reward, snake_dead_dict, {'current_turn': self.turn_count,
                                                                    'snake_health': snakes_health,
                                                                    'snake_info': snake_info,
                                                                    'snake_max_len': self.snake_max_len}
