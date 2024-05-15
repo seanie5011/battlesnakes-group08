@@ -47,8 +47,12 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # assume all moves are valid at the start
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
+    # get our name and our teammates name
+    my_name = game_state["you"]["name"]
+    teammates_name = "SORZWE2" if my_name == "SORZWE" else "SORZWE"
+
     # get our head and body
-    my_id = game_state["you"]["id"]  # TODO: will this work?????????????
+    my_id = game_state["you"]["id"]
     head = game_state["you"]["body"][0]  # Coordinates of your head
     body = game_state["you"]["body"][1:-1]  # TODO: (bodypart after head, tail not needed??)
     all_snakes = game_state['board']['snakes']
@@ -81,17 +85,40 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # Avoid collisions with all snakes, including another "SORZWE"
     for snake in all_snakes:
-        if snake["id"] != my_id:  # skip self, check other snakes
-            is_teammate = (snake["name"] == "SORZWE") and (snake["id"] != my_id)  # TODO mb need it later
-            for bodypart in snake["body"]:
-                if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
-                    is_move_safe["left"] = False
-                if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
-                    is_move_safe["right"] = False
-                if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
-                    is_move_safe["down"] = False
-                if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
-                    is_move_safe["up"] = False
+        if snake["name"] == my_name:
+            continue
+        is_teammate = (snake["name"] == "SORZWE") or (snake["name"] == "SORZWE2")
+        for bodypart in snake["body"]:
+            if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+                is_move_safe["left"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+                is_move_safe["right"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+                is_move_safe["down"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+                is_move_safe["up"] = False
+
+    # TODO: if tree depth and heuristic can work properly, we wont need this then
+    non_traversable = set()
+    for snake in all_snakes:
+        if snake["name"] != my_name:
+            other_snake_head = snake["body"][0]
+            non_traversable.add((other_snake_head['x'] + 1, other_snake_head['y']))
+            non_traversable.add((other_snake_head['x'] - 1, other_snake_head['y']))
+            non_traversable.add((other_snake_head['x'], other_snake_head['y'] + 1))
+            non_traversable.add((other_snake_head['x'], other_snake_head['y'] - 1))
+
+    possible_moves = {
+        "up": (head['x'], head['y'] + 1),
+        "down": (head['x'], head['y'] - 1),
+        "left": (head['x'] - 1, head['y']),
+        "right": (head['x'] + 1, head['y'])
+    }
+
+    for direction, (x, y) in possible_moves.items():
+        if (x, y) in non_traversable:
+            is_move_safe[direction] = False
+
 
     # Are there any safe moves left?
     safe_moves = []
@@ -107,40 +134,42 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # get all other snakes
     opponents = []
     for snake in all_snakes:
-        if snake["id"] != my_id:
+        # if snake["name"] == teammates_name or snake["name"] != my_name:
+        if snake["name"] != my_name:
             opponents.append(snake)  # TODO maybe entire object needed??
 
-    # want to get the best move
-    best_move = random.choice(safe_moves)  # by default make random move
-    best_score = float('-inf')
-    depth = 2  # Depth can be adjusted based on performance needs, interestingly, having depth too deep will cause too
-    # much computation and cause our snake to hit boarder before managed to make calculation (praise the RL ^_^)
-    alpha = float('-inf')
-    beta = float('inf')
-    print("check" , safe_moves)
-    # advance the game state using each safe move
-    # check the value of that new state
-    # pick the one with the highest score
-
-    valid_safe_moves = safe_moves.copy()
+    # Determine valid safe moves where the snake can still reach its tail
+    valid_safe_moves = []
+    print("safe moves: ", safe_moves)
     for move in safe_moves:
-        new_state, snake_index = get_state_from_move(game_state, my_id, move)
+        new_state, snake_index = get_state_from_move(game_state, my_name, move)
         simulated_head = new_state["board"]["snakes"][snake_index]["body"][0]
         simulated_body = new_state["board"]["snakes"][snake_index]["body"]
         simulated_tail = new_state["board"]["snakes"][snake_index]["body"][-1]
-        print(f"Simulated move {move} -> new head: {simulated_head}")
-        if not can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
-            is_move_safe[move] = False
-            valid_safe_moves.remove(move)
+        if can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
+            valid_safe_moves.append(move)
 
-    print("can reach tail move", valid_safe_moves)
+    print("Valid safe moves:", valid_safe_moves)
+
+    # Evaluate each valid safe move using BRS
+    best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves)
+    best_score = float('-inf')
+    depth = 2  # Adjust depth based on performance needs
+    alpha = float('-inf')
+    beta = float('inf')
+
+
     for move in valid_safe_moves:
-        """score = brs(alpha, beta, depth, 'MAX', game_state, my_id, opponents, is_move_safe)
+        new_state, _ = get_state_from_move(game_state, my_name, move)
+        score = brs(alpha, beta, depth, 'MAX', new_state, my_name, opponents, is_move_safe)
+        print("getting score ??????? ", score)
         if score > best_score:
+            print("getting score update", score)
             best_score = score
-            best_move = move"""
-        best_move = random.choice(valid_safe_moves)
+            best_move = move
+
     print(f"MOVE {game_state['turn']}: {best_move}")
+    print("Move: " + best_move + " for " + my_name)
     return {"move": best_move}
 
 
