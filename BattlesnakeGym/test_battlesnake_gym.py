@@ -17,10 +17,9 @@ import unittest
 
 import numpy as np
 
-from snake_gym import BattlesnakeGym
-from snake import Snake
-
-from test_utils import grow_snake, grow_two_snakes, SHOULD_RENDER, VERBOSE, simulate_snake
+from .snake_gym import BattlesnakeGym
+from .snake import Snake
+from .test_utils import grow_snake, grow_two_snakes, SHOULD_RENDER, VERBOSE, simulate_snake
 
 class TestBattlesnakeGym(unittest.TestCase):
     '''

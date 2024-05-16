@@ -18,11 +18,11 @@ from gymnasium.utils import seeding
 import json
 import string
 
-from snake import Snakes
-from food import Food
-from game_state_parser import Game_state_parser
-from rewards import SimpleRewards
-from utils import get_random_coordinates, MultiAgentActionSpace, get_distance
+from .snake import Snakes
+from .food import Food
+from .game_state_parser import Game_state_parser
+from .rewards import SimpleRewards
+from .utils import get_random_coordinates, MultiAgentActionSpace, get_distance
 
 class BattlesnakeGym(gym.Env):
     metadata = {

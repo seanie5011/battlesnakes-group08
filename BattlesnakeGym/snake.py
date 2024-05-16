@@ -13,7 +13,7 @@
 
 import numpy as np
 
-from utils import get_random_coordinates
+from .utils import get_random_coordinates
 
 class Snake:
     '''

@@ -13,11 +13,10 @@
 
 import os
 import time
-
 import numpy as np
 
-from snake_gym import BattlesnakeGym
-from snake import Snake
+from .snake_gym import BattlesnakeGym
+from .snake import Snake
 
 SHOULD_RENDER = False
 VERBOSE = 0

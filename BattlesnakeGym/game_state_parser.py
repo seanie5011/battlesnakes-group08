@@ -11,11 +11,12 @@
 # express or implied. See the License for the specific language governing 
 # permissions and limitations under the License.
 
-from snake import Snakes
-from food import Food
 import pandas as pd
 import string
 import numpy as np
+
+from .snake import Snakes
+from .food import Food
 
 class Game_state_parser:
     '''

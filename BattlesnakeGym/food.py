@@ -15,7 +15,7 @@ import math
 import random
 
 import numpy as np
-from utils import get_random_coordinates, generate_coordinate_list_from_binary_map
+from .utils import get_random_coordinates, generate_coordinate_list_from_binary_map
 
 class Food:
     '''

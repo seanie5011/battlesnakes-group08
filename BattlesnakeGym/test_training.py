@@ -1,5 +1,6 @@
 import time
-from snake_gym import BattlesnakeGym
+
+from .snake_gym import BattlesnakeGym
 
 RENDER = 0
 VERBOSE = 0
