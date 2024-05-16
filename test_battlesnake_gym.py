@@ -17,9 +17,8 @@ import unittest
 
 import numpy as np
 
-from .snake_gym import BattlesnakeGym
-from .snake import Snake
-from .test_utils import grow_snake, grow_two_snakes, SHOULD_RENDER, VERBOSE, simulate_snake
+from battlesnakegym import snake_gym, snake
+from test_utils import grow_snake, grow_two_snakes, SHOULD_RENDER, VERBOSE, simulate_snake
 
 class TestBattlesnakeGym(unittest.TestCase):
     '''
@@ -55,16 +54,16 @@ class TestBattlesnakeGym(unittest.TestCase):
         '''
         snake_location = [(4, 1), (4, 12)]
         food_location = [(4, 2), (4, 9), (4, 3), (4, 8), (0, 0), (0, 0), (0, 0)]
-        env = BattlesnakeGym(map_size=(13, 13), number_of_snakes=2,
+        env = snake_gym.BattlesnakeGym(map_size=(13, 13), number_of_snakes=2,
                              snake_spawn_locations=snake_location,
                              food_spawn_locations=food_location,
                              verbose=VERBOSE, food_spawn_chance=0.0)
         
         env.reset()
         
-        actions = [[Snake.RIGHT, Snake.LEFT], [Snake.RIGHT, Snake.LEFT], [Snake.RIGHT, Snake.LEFT],
-                   [Snake.RIGHT, Snake.LEFT], [Snake.RIGHT, Snake.LEFT], [Snake.RIGHT, Snake.LEFT],
-                   [Snake.RIGHT, Snake.LEFT]]
+        actions = [[snake.Snake.RIGHT, snake.Snake.LEFT], [snake.Snake.RIGHT, snake.Snake.LEFT], [snake.Snake.RIGHT, snake.Snake.LEFT],
+                   [snake.Snake.RIGHT, snake.Snake.LEFT], [snake.Snake.RIGHT, snake.Snake.LEFT], [snake.Snake.RIGHT, snake.Snake.LEFT],
+                   [snake.Snake.RIGHT, snake.Snake.LEFT]]
 
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
 
@@ -79,9 +78,9 @@ class TestBattlesnakeGym(unittest.TestCase):
         see: outcome option = "Snake was eaten - adjacent tile" in snake_gym._did_snake_collide
         '''
         env = grow_two_snakes(snake_starting_positions=[(0, 0), (5, 0)], food_spawn_chance=1.0, verbose=VERBOSE)
-        actions_snake1 = [[Snake.DOWN], [Snake.LEFT]] + [[Snake.UP]]*4
+        actions_snake1 = [[snake.Snake.DOWN], [snake.Snake.LEFT]] + [[snake.Snake.UP]]*4
         
-        actions_snake2 = [[Snake.UP]]*3 + [[Snake.RIGHT]]*3
+        actions_snake2 = [[snake.Snake.UP]]*3 + [[snake.Snake.RIGHT]]*3
         tmp_actions = list(zip(actions_snake1, actions_snake2))
         actions = []
         for action in tmp_actions:
@@ -91,7 +90,7 @@ class TestBattlesnakeGym(unittest.TestCase):
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
         self.assertTrue(np.sum(snakes_alive) == 2)
 
-        actions = [np.array([Snake.LEFT, Snake.RIGHT])]
+        actions = [np.array([snake.Snake.LEFT, snake.Snake.RIGHT])]
 
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
@@ -105,9 +104,9 @@ class TestBattlesnakeGym(unittest.TestCase):
         see: outcome option = "Snake was eaten - same tile" in snake_gym._did_snake_collide
         '''
         env = grow_two_snakes(snake_starting_positions=[(0, 0), (5, 1)], food_spawn_chance=1.0, verbose=VERBOSE)
-        actions_snake1 = [[Snake.DOWN], [Snake.LEFT]] + [[Snake.UP]]*3
+        actions_snake1 = [[snake.Snake.DOWN], [snake.Snake.LEFT]] + [[snake.Snake.UP]]*3
         
-        actions_snake2 = [[Snake.UP]]*3 + [[Snake.RIGHT]]*2
+        actions_snake2 = [[snake.Snake.UP]]*3 + [[snake.Snake.RIGHT]]*2
         tmp_actions = list(zip(actions_snake1, actions_snake2))
         actions = []
         for action in tmp_actions:
@@ -117,7 +116,7 @@ class TestBattlesnakeGym(unittest.TestCase):
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
         self.assertTrue(np.sum(snakes_alive) == 2)
 
-        actions = [np.array([Snake.UP, Snake.RIGHT])]
+        actions = [np.array([snake.Snake.UP, snake.Snake.RIGHT])]
 
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
@@ -132,10 +131,10 @@ class TestBattlesnakeGym(unittest.TestCase):
         see: outcome option = "Snake hit body - hit other" in snake_gym._did_snake_collide
         '''
         env = grow_two_snakes(snake_starting_positions=[(0, 0), (5, 0)], food_spawn_chance=1.0, verbose=VERBOSE)
-        actions_snake1 = [[Snake.DOWN], [Snake.LEFT], [Snake.UP], [Snake.UP],
-                          [Snake.LEFT], [Snake.LEFT]]
+        actions_snake1 = [[snake.Snake.DOWN], [snake.Snake.LEFT], [snake.Snake.UP], [snake.Snake.UP],
+                          [snake.Snake.LEFT], [snake.Snake.LEFT]]
         
-        actions_snake2 = [[Snake.RIGHT]]*2 + [[Snake.UP]]*3
+        actions_snake2 = [[snake.Snake.RIGHT]]*2 + [[snake.Snake.UP]]*3
         tmp_actions = list(zip(actions_snake1, actions_snake2))
         actions = []
         for action in tmp_actions:
@@ -145,7 +144,7 @@ class TestBattlesnakeGym(unittest.TestCase):
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
         self.assertTrue(np.sum(snakes_alive) == 2)
         
-        actions = [np.array([Snake.LEFT, Snake.UP])]
+        actions = [np.array([snake.Snake.LEFT, snake.Snake.UP])]
 
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
         snakes_alive = [snake.is_alive() for snake in env.snakes.get_snakes()]
@@ -160,8 +159,8 @@ class TestBattlesnakeGym(unittest.TestCase):
         '''
 
         env = grow_snake(food_spawn_chance=1.0, verbose=VERBOSE)
-        actions = [[Snake.DOWN]]
-        actions += [[Snake.LEFT], [Snake.UP], [Snake.RIGHT]]
+        actions = [[snake.Snake.DOWN]]
+        actions += [[snake.Snake.LEFT], [snake.Snake.UP], [snake.Snake.RIGHT]]
 
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
         
@@ -177,8 +176,8 @@ class TestBattlesnakeGym(unittest.TestCase):
 
         env = grow_snake(food_spawn_chance=1.0, verbose=VERBOSE)
 
-        actions = [[Snake.DOWN]]
-        actions += [[Snake.LEFT]] * 10
+        actions = [[snake.Snake.DOWN]]
+        actions += [[snake.Snake.LEFT]] * 10
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
 
         # Check snake died
@@ -201,42 +200,42 @@ class TestBattlesnakeGym(unittest.TestCase):
 
         snake_location = [(0, 0)]
         food_location = [(5, 5) for _ in range(0, 200)]
-        env = BattlesnakeGym(map_size=(9, 10), number_of_snakes=1,
+        env = snake_gym.BattlesnakeGym(map_size=(9, 10), number_of_snakes=1,
                           snake_spawn_locations=snake_location,
                           food_spawn_locations=food_location,
                           verbose=VERBOSE, food_spawn_chance=1.0)
         
         env.reset()
 
-        actions = [[Snake.RIGHT]]
+        actions = [[snake.Snake.RIGHT]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
-        self.assertTrue(env.snakes.get_snakes()[0].health == Snake.FULL_HEALTH - 1)
+        self.assertTrue(env.snakes.get_snakes()[0].health == snake.Snake.FULL_HEALTH - 1)
 
         actions = []
-        for i in range(1, Snake.FULL_HEALTH - 1):
+        for i in range(1, snake.Snake.FULL_HEALTH - 1):
             if int(i % 32 / 8) == 0:
-                actions.append([Snake.RIGHT])
+                actions.append([snake.Snake.RIGHT])
                 continue
             if int(i % 32 / 16) == 0:
-                actions.append([Snake.DOWN])
+                actions.append([snake.Snake.DOWN])
                 continue
             if int(i % 32 / 24) == 0:
-                actions.append([Snake.LEFT])
+                actions.append([snake.Snake.LEFT])
                 continue
             if int(i % 32 / 32) == 0:
-                actions.append([Snake.UP])
+                actions.append([snake.Snake.UP])
                 continue
         simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
         self.assertTrue(env.snakes.get_snakes()[0].health == 1)
         self.assertTrue(env.snakes.get_snakes()[0].is_alive())
         
-        actions = [[Snake.RIGHT]]
+        actions = [[snake.Snake.RIGHT]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         self.assertTrue(env.snakes.get_snakes()[0].health == 0)
         self.assertFalse(env.snakes.get_snakes()[0].is_alive())
 
         # Check snake died
-        actions = [[Snake.RIGHT]]
+        actions = [[snake.Snake.RIGHT]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         self.assertTrue(np.sum(env.snakes.get_snake_51_map()) == 0)
         env.close()
@@ -249,31 +248,31 @@ class TestBattlesnakeGym(unittest.TestCase):
         '''
         snake_location = [(4, 4)]
         food_location = [(5, 5)]
-        env = BattlesnakeGym(map_size=(9, 10), number_of_snakes=1,
+        env = snake_gym.BattlesnakeGym(map_size=(9, 10), number_of_snakes=1,
                           snake_spawn_locations=snake_location,
                           food_spawn_locations=food_location, verbose=VERBOSE, food_spawn_chance=0.0)
         
         env.reset()
 
-        actions = [[Snake.UP]]
+        actions = [[snake.Snake.UP]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         snake_location_moved = [(4, 4), (3, 4)]
         self.assertTrue(
             np.array_equal(env.snakes.get_snakes()[0].locations, snake_location_moved))
 
-        actions = [[Snake.LEFT]]
+        actions = [[snake.Snake.LEFT]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         snake_location_moved = [(4, 4), (3, 4), (3, 3)]
         self.assertTrue(
             np.array_equal(env.snakes.get_snakes()[0].locations, snake_location_moved))
 
-        actions = [[Snake.DOWN]]
+        actions = [[snake.Snake.DOWN]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         snake_location_moved = [(3, 4), (3, 3), (4, 3)]
         self.assertTrue(
             np.array_equal(env.snakes.get_snakes()[0].locations, snake_location_moved))
         
-        actions = [[Snake.RIGHT]]
+        actions = [[snake.Snake.RIGHT]]
         simulate_snake(env, actions, render=SHOULD_RENDER)
         snake_location_moved = [(3, 3), (4, 3), (4, 4)]
         self.assertTrue(
@@ -284,7 +283,7 @@ class TestBattlesnakeGym(unittest.TestCase):
         '''
         Test that snakes and food are correct when randomly spawned
         '''
-        env = BattlesnakeGym(map_size=(9, 9), number_of_snakes=1, verbose=VERBOSE)
+        env = snake_gym.BattlesnakeGym(map_size=(9, 9), number_of_snakes=1, verbose=VERBOSE)
 
         env.reset()
 
@@ -301,7 +300,7 @@ class TestBattlesnakeGym(unittest.TestCase):
         '''
         snake_location = [(4, 4)]
         food_location = [(5, 5)]
-        env = BattlesnakeGym(map_size=(9, 9), number_of_snakes=1,
+        env = snake_gym.BattlesnakeGym(map_size=(9, 9), number_of_snakes=1,
                           snake_spawn_locations=snake_location,
                           food_spawn_locations=food_location, verbose=VERBOSE, food_spawn_chance=1.0)
 
@@ -316,20 +315,20 @@ class TestBattlesnakeGym(unittest.TestCase):
 
     def test_states(self):
         '''
-        Test that the state returned is correct
+        Test that the state returned is correct. KNOWN TO FAIL.
         '''
 
         # food is not consistent, sometimes food will spawn randomly, not certain why.
 
         snake_location = [(0, 0)]
         food_location = [(1, 0), (1, 2), (2, 0), (2, 0), (2, 0)]
-        env = BattlesnakeGym(map_size=(3, 3), number_of_snakes=1,
+        env = snake_gym.BattlesnakeGym(map_size=(3, 3), number_of_snakes=1,
                           snake_spawn_locations=snake_location,
                           food_spawn_locations=food_location, verbose=VERBOSE, food_spawn_chance=0.0)
 
         env.reset()
         
-        actions = [[Snake.DOWN], [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.LEFT]]
+        actions = [[snake.Snake.DOWN], [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.LEFT]]
         observation, _, _, _ = simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
 
         food_state = np.zeros(shape=(3, 3), dtype=np.uint8)

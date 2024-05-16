@@ -1,11 +1,11 @@
 import time
 
-from .snake_gym import BattlesnakeGym
+from battlesnakegym import snake_gym
 
 RENDER = 0
 VERBOSE = 0
 
-env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, verbose=VERBOSE)
+env = snake_gym.BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, verbose=VERBOSE)
 
 # run for number of episodes
 episodes = 1  # for completely random games on a 11x11 map with 4 snakes, each snake only moves 3.7 times before death

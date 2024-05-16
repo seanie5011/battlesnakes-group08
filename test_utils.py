@@ -15,8 +15,7 @@ import os
 import time
 import numpy as np
 
-from .snake_gym import BattlesnakeGym
-from .snake import Snake
+from battlesnakegym import snake_gym, snake
 
 SHOULD_RENDER = False
 VERBOSE = 0
@@ -74,18 +73,18 @@ def grow_snake(food_spawn_chance, verbose):
                      (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                      (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0),
                      (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]
-    env = BattlesnakeGym(map_size=(9, 9), number_of_snakes=1,
+    env = snake_gym.BattlesnakeGym(map_size=(9, 9), number_of_snakes=1,
                          snake_spawn_locations=snake_location,
                          food_spawn_locations=food_location,
                          verbose=verbose, food_spawn_chance=food_spawn_chance)
     
     env.reset()
 
-    actions = [[Snake.DOWN], [Snake.DOWN],
-               [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN],
-               [Snake.RIGHT], [Snake.RIGHT], [Snake.UP], [Snake.UP],
-               [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN],
-               [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN], [Snake.DOWN]]
+    actions = [[snake.Snake.DOWN], [snake.Snake.DOWN],
+               [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN],
+               [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.UP], [snake.Snake.UP],
+               [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN],
+               [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN], [snake.Snake.DOWN]]
 
     simulate_snake(env, actions, render=SHOULD_RENDER, break_with_done=False)
     return env
@@ -97,20 +96,20 @@ def grow_two_snakes(snake_starting_positions, food_spawn_chance, verbose):
     snake_location = snake_starting_positions
     food_location = [(2, 0), (2, 2), (4, 2), (2, 4), (4, 6),
                      (7, 5), (7, 4), (7, 3), (7, 2)] + [(0, 0)] * 100
-    env = BattlesnakeGym(map_size=(9, 9), number_of_snakes=2,
+    env = snake_gym.BattlesnakeGym(map_size=(9, 9), number_of_snakes=2,
                          snake_spawn_locations=snake_location,
                          food_spawn_locations=food_location,
                          verbose=verbose, food_spawn_chance=food_spawn_chance)
     
     env.reset()
 
-    actions_snake1 = [[Snake.DOWN], [Snake.DOWN],
-                      [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN],
-                      [Snake.RIGHT], [Snake.RIGHT], [Snake.UP], [Snake.UP],
-                      [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN],
-                      [Snake.RIGHT], [Snake.RIGHT], [Snake.DOWN], [Snake.DOWN], [Snake.DOWN]]
+    actions_snake1 = [[snake.Snake.DOWN], [snake.Snake.DOWN],
+                      [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN],
+                      [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.UP], [snake.Snake.UP],
+                      [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN],
+                      [snake.Snake.RIGHT], [snake.Snake.RIGHT], [snake.Snake.DOWN], [snake.Snake.DOWN], [snake.Snake.DOWN]]
 
-    actions_snake2 = [[Snake.RIGHT] ] *7 + [[Snake.DOWN]] + [[Snake.LEFT] ] *7 + [[Snake.DOWN]] + [[Snake.RIGHT] ] *3
+    actions_snake2 = [[snake.Snake.RIGHT] ] *7 + [[snake.Snake.DOWN]] + [[snake.Snake.LEFT] ] *7 + [[snake.Snake.DOWN]] + [[snake.Snake.RIGHT] ] *3
     tmp_actions = list(zip(actions_snake1, actions_snake2))
     actions = []
     for action in tmp_actions:
