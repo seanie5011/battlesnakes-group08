@@ -268,7 +268,7 @@ class Snake:
             # To check if the snake is dead or not
             return map_image
 
-        for i, location in enumerate(self.locations):
+        for i, location in enumerate(self.locations[::-1]):
             if return_type == "Colour":
                 map_image[location[0], location[1], :] = self.colour
             elif return_type == "Binary":
@@ -386,55 +386,8 @@ class Snakes:
         '''
         sum_map = np.sum(self.get_snake_depth_51_map(excluded_snakes=excluded_snakes), 2)   
         return sum_map
-            
-    def get_snake_numbered_map(self, excluded_snakes=[]):
-        '''
-        Function to generate a numbered map of the locations of any snake
-        1 will be the head, 2, 3 etc will be the body
 
-        Parameters:
-        ----------
-        excluded_snakes: [Snake]
-            Snakes to not be included in the binary map. 
-            Used to check if there are collisions between snakes
-        
-        Returns:
-        --------
-        map_image: np.array(map_sizep[0], map_size[1], 1)
-            If any snake is on coordinate i, j, map_image[i, j] will be 1
-        '''
-        return np.sum(self.get_snake_depth_numbered_map(
-            excluded_snakes=excluded_snakes), 2)
-
-    def get_snake_depth_numbered_map(self, excluded_snakes=[]):
-        '''
-        Function to generate a numbered map of the locations of any snake
-        1 will be the head, 2, 3 etc will be the body
-
-        Parameters:
-        ----------
-        excluded_snakes: [Snake]
-            Snakes to not be included in the binary map. 
-            Used to check if there are collisions between snakes
-
-        Returns:
-        --------
-        map_image: np.array(map_sizep[0], map_size[1], number_of_snakes)
-            The depth of the map_image corresponds to each snakes
-            For each snake, 1 indicates the head and 2, 3, 4 etc indicates
-             the body that the snake is present in that location and 0
-            indicates that the snake is not present in that location
-        '''
-        map_image = np.zeros((self.map_size[0], self.map_size[1],
-                              len(self.snakes)),
-                             dtype=np.uint8)
-        for i, snake in enumerate(self.snakes):
-            if snake not in excluded_snakes:
-                map_image[:, :, i] = snake.get_snake_map(return_type="Numbered")
-        return map_image
-
-
-    def get_snake_depth_51_map(self, excluded_snakes=[]):
+    def get_snake_depth_51_map(self, excluded_snakes=[], return_type="Binary"):
         '''
         Function to generate a 51 map of the locations of the snakes
 
@@ -457,7 +410,7 @@ class Snakes:
                              dtype=np.uint8)
         for i, snake in enumerate(self.snakes):
             if snake not in excluded_snakes:
-                map_image[:, :, i] = snake.get_snake_map(return_type="Binary")
+                map_image[:, :, i] = snake.get_snake_map(return_type=return_type)
 
         return map_image
 

@@ -25,30 +25,12 @@ from .rewards import SimpleRewards
 from .utils import get_random_coordinates, MultiAgentActionSpace, get_distance
 
 class BattlesnakeGym(gym.Env):
-    metadata = {
-        "render.modes": ["human", "rgb_array", "ascii"],
-        "observation.types": ["flat-num", "bordered-num",
-                              "max-bordered-num",
-                              "flat-51s", "bordered-51s", 
-                              "max-bordered-51s"]
-    }
     '''
     OpenAI Gym for BattlesnakeIO 
     Behaviour of snakes in Battlesnake.io based on https://docs.battlesnake.com/references/rules
 
     Parameters:
     ----------
-    observation_type: str, options, options=["flat-num", "bordered-num",
-                              "flat-51s", "bordered-51s"], default="flat-51s"
-        Sets the observation space of the gym
-        1- "flat-num" option will only provide food and snakes (represented by 1...length)
-        2- "bordered-num" option will provide a border of -1 surrounding the gym
-        3- "flat-51s" is the same as the flat option but the snake head is labeleld as 5 and the rest
-           is labelled as 1
-        4- "bordered-51s" similar to flat-51s
-        5- "max-bordered-num" option will provide borders of -1 until a maximum map size of 21, 21
-        6- "max-bordered-51s" similar to max-bordered-num
-    
     map_size: (int, int), optional, default=(15, 15)
     
     number_of_snakes: int, optional, default=1
@@ -69,7 +51,7 @@ class BattlesnakeGym(gym.Env):
         https://docs.battlesnake.com/references/api
     '''
     MAX_BORDER = (21, 21) # Largest map size (19, 19) + 2 for -1 borders
-    def __init__(self, observation_type="flat-51s", map_size=(15, 15),
+    def __init__(self, map_size=(15, 15),
                  number_of_snakes=4, 
                  snake_spawn_locations=[], food_spawn_locations=[],
                  verbose=False, initial_game_state=None, rewards=SimpleRewards(), food_spawn_chance=0.15):
@@ -87,7 +69,6 @@ class BattlesnakeGym(gym.Env):
         self.action_space = MultiAgentActionSpace(
             [spaces.Discrete(4) for _ in range(number_of_snakes)])
 
-        self.observation_type = observation_type
         self.observation_space = self.get_observation_space()
         
         self.viewer = None
@@ -100,22 +81,12 @@ class BattlesnakeGym(gym.Env):
         Helper function to define the observation space given self.map_size, self.number_of_snakes
         and self.observation_type
         '''
-        if "flat" in self.observation_type:
-            observation_space = spaces.Box(low=0, high=5,
-                                           shape=(self.map_size[0],
-                                                  self.map_size[1],
-                                                  self.number_of_snakes+1),
-                                           dtype=np.uint8)
-        elif "bordered" in self.observation_type:
-            if "max-bordered" in self.observation_type:
-                border_size = self.MAX_BORDER[0] - self.map_size[0]
-            else:
-                border_size = 2
-            observation_space = spaces.Box(low=0, high=5,
-                                           shape=(self.map_size[0]+border_size,
-                                                  self.map_size[1]+border_size,
-                                                  self.number_of_snakes+1),
-                                           dtype=np.uint8)
+        observation_space = spaces.Box(low=0, high=5,
+                                        shape=(self.map_size[0],
+                                                self.map_size[1],
+                                                self.number_of_snakes+1),
+                                        dtype=np.uint8)
+
         return observation_space
 
     def initialise_game_state(self, game_state_dict):
@@ -174,7 +145,7 @@ class BattlesnakeGym(gym.Env):
                 'snake_health': snakes_health,
                 'snake_info': snake_info, 
                 'snake_max_len': self.snake_max_len}
-        return self._get_observation(), {}, dones, info
+        return self._get_state(), {}, dones, info
 
     def _did_snake_collide(self, snake, snakes_to_be_killed):
         '''
@@ -321,9 +292,6 @@ class BattlesnakeGym(gym.Env):
         reward = {}
         snake_info = {}
 
-        # DEBUGING
-        json_before_moving = self.get_json()
-        
         # Reduce health and move
         for i, snake in enumerate(self.snakes.get_snakes()):
             reward[i] = 0
@@ -348,10 +316,6 @@ class BattlesnakeGym(gym.Env):
         # check for food and collision
         number_of_food_eaten = 0
         number_of_snakes_alive = 0
-
-        
-        # DEBUGING
-        json_after_moving = self.get_json()
         
         snakes_to_be_killed = []
         for i, snake in enumerate(self.snakes.get_snakes()):
@@ -439,37 +403,12 @@ class BattlesnakeGym(gym.Env):
         if np.max(sum_map) > 5 or 2 in sum_map:
             print("snake info {}".format(snake_info))
             print("actions {}".format(actions))
-            print("before moving json {}".format(json_before_moving))
-            print("after moving json {}".format(json_after_moving))
-            print("final json {}".format(self.get_json()))
             raise
             
-        return self._get_observation(), reward, snake_dead_dict, {'current_turn': self.turn_count,
+        return self._get_state(), reward, snake_dead_dict, {'current_turn': self.turn_count,
                                                                    'snake_health': snakes_health,
                                                                    'snake_info': snake_info,
                                                                    'snake_max_len': self.snake_max_len}
-                
-    def _get_observation(self):
-        '''
-        Helper function to generate the output observation.
-        '''
-        if "flat" in self.observation_type:
-            return self._get_state()
-        elif "bordered" in self.observation_type:
-            state = self._get_state()
-
-            if "max-bordered" in self.observation_type:
-                border_size = self.MAX_BORDER[0] - self.map_size[0]
-            else: 
-                border_size = 2
-                
-            bordered_state_shape = (state.shape[0]+border_size, state.shape[1]+border_size,
-                                    state.shape[2])
-            bordered_state = np.ones(shape=bordered_state_shape)*-1
-            
-            b = int(border_size/2)
-            bordered_state[b:-b, b:-b,:] = state
-            return bordered_state
 
     def _get_state(self):
         ''''
@@ -492,65 +431,10 @@ class BattlesnakeGym(gym.Env):
         state[:, :, FOOD_INDEX] = self.food.get_food_map()
         
         # Include the positions of the snakes
-        if "51s" in self.observation_type:
-            state[:, :, SNAKE_INDEXES] = self.snakes.get_snake_depth_51_map()
-        else:
-            state[:, :, SNAKE_INDEXES] = self.snakes.get_snake_depth_numbered_map()   
+        state[:, :, SNAKE_INDEXES] = self.snakes.get_snake_depth_51_map(return_type="Numbered")
+
         return state
 
-    def _get_board(self, state):
-        ''''
-        Generate visualisation of the gym. Based on the state (generated by _get_state).
-        '''
-        
-        FOOD_INDEX = 0
-        SNAKE_INDEXES = FOOD_INDEX + np.array(range(1, self.number_of_snakes + 1))
-
-        BOUNDARY = 20
-        BOX_SIZE = 40
-        SPACE_BETWEEN_BOXES = 10
-        snake_colours = self.snakes.get_snake_colours()
-        
-        # Create board
-        board_size = (self.map_size[0]*(BOX_SIZE + SPACE_BETWEEN_BOXES) + 2*BOUNDARY,
-                      self.map_size[1]*(BOX_SIZE + SPACE_BETWEEN_BOXES) + 2*BOUNDARY)
-        board = np.ones((board_size[0], board_size[1], 3), dtype=np.uint8) * 255
-
-        # Create boxes
-        for i in range(0, self.map_size[0]):
-            for j in range(0, self.map_size[1]):
-                state_value = state[i][j]
-
-                t_i1 = BOUNDARY + i * (BOX_SIZE + SPACE_BETWEEN_BOXES)
-                t_i2 = t_i1 + BOX_SIZE
-
-                t_j1 = BOUNDARY + j * (BOX_SIZE + SPACE_BETWEEN_BOXES)
-                t_j2 = t_j1 + BOX_SIZE
-
-
-                board[t_i1:t_i2, t_j1:t_j2] = 255 * 0.7
-                
-                # If state contains food
-                if state_value[FOOD_INDEX] >= 1:
-                    box_margin = int(BOX_SIZE/5)
-                    board[t_i1 + box_margin:t_i2 - box_margin,
-                          t_j1 + box_margin:t_j2 - box_margin] = [255, 0, 0]
-
-                # If state contains a snake body
-                if 1 in state_value[SNAKE_INDEXES]:
-                    snake_present_in = np.argmax(state_value[SNAKE_INDEXES])
-                    board[t_i1:t_i2, t_j1:t_j2] = snake_colours[snake_present_in]
-                    
-                # If state contains a snake head
-                if 5 in state_value[SNAKE_INDEXES]:
-                    snake_present_in = np.argmax(state_value[SNAKE_INDEXES])
-                    board[t_i1:t_i2, t_j1:t_j2] = snake_colours[snake_present_in]
-                    t_i_h = 10
-                    t_j_h = 10
-                    board[(t_i1+t_i_h):(t_i2-t_i_h), (t_j1+t_j_h):(t_j2-t_j_h)] = [255, 255, 255]
-
-        return board
-    
     def get_json(self):
         '''
         Generate a json representation of the gym following the same input as the battlesnake
@@ -605,8 +489,6 @@ class BattlesnakeGym(gym.Env):
              - Snakes characters (head is the uppercase letter)
              - The health of each snake is on the bottom of the gym
         '''
-        FOOD_INDEX = 0
-        SNAKE_INDEXES = FOOD_INDEX + np.array(range(1, self.number_of_snakes + 1))
 
         ascii_array = np.empty(shape=(self.map_size[0] + 2, self.map_size[1] + 2), dtype="object")
 
@@ -656,7 +538,7 @@ class BattlesnakeGym(gym.Env):
             
         return ascii_string
         
-    def render(self, mode="ascii"):
+    def render(self):
         '''
         Inherited function from openAI gym to visualise the progression of the gym
         
@@ -666,19 +548,7 @@ class BattlesnakeGym(gym.Env):
             mode == human will present the gym in a separate window
             mode == rgb_array will return the gym in np.arrays
         '''
-        state = self._get_state()
-        if mode == "rgb_array":
-            return self._get_board(state)
-        elif mode == "ascii":
-            ascii = self._get_ascii()
-            print(ascii)
-            # for _ in range(ascii.count('\n')):
-            #     print("\033[A")
-            return ascii
-        # elif mode == "human":
-        #     from gymnasium.envs.classic_control import rendering
-        #     board = self._get_board(state)
-        #     if self.viewer is None:
-        #         self.viewer = rendering.SimpleImageViewer()
-        #     self.viewer.imshow(board)
-        #     return self.viewer.isopen
+
+        ascii = self._get_ascii()
+        print(ascii)
+        return ascii
