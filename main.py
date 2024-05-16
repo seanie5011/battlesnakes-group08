@@ -12,10 +12,6 @@
 
 import random
 import typing
-import math
-
-from brs import *
-
 
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
@@ -125,21 +121,6 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # want to get the best move
     best_move = random.choice(safe_moves)  # by default make random move
-    best_score = float('-inf')
-    depth = 1  # Depth can be adjusted based on performance needs
-    alpha = float('-inf')
-    beta = float('inf')
-
-    # advance the game state using each safe move
-    # check the value of that new state
-    # pick the one with the highest score
-    for move in safe_moves:
-        new_state = get_state_from_move(game_state, "SORZWE", move)
-        score = brs(alpha, beta, depth, 'MAX', new_state, "SORZWE", opponents)
-
-        if score > best_score:
-            best_score = score
-            best_move = move
 
     print(f"MOVE {game_state['turn']}: {best_move}")
 
