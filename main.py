@@ -49,6 +49,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # get our name and our teammates name
     my_name = game_state["you"]["name"]
+    my_length = len(game_state["you"]["body"])
     teammates_name = "SORZWE2" if my_name == "SORZWE" else "SORZWE"
 
     # get our head and body
@@ -98,11 +99,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
             if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
                 is_move_safe["up"] = False
 
+    # Are there any safe moves left?
+    safe_moves_back_up = []
+    for move, isSafe in is_move_safe.items():
+        if isSafe:
+            safe_moves_back_up.append(move)
+
     # TODO: if tree depth and heuristic can work properly, we wont need this then
     non_traversable = set()
     for snake in all_snakes:
-        if snake["name"] != my_name:
-            other_snake_head = snake["body"][0]
+        other_snake_head = snake["body"][0]
+        if snake["name"] == teammates_name or (snake["name"] != my_name and len(snake["body"]) >= my_length):
             non_traversable.add((other_snake_head['x'] + 1, other_snake_head['y']))
             non_traversable.add((other_snake_head['x'] - 1, other_snake_head['y']))
             non_traversable.add((other_snake_head['x'], other_snake_head['y'] + 1))
@@ -119,17 +126,21 @@ def move(game_state: typing.Dict) -> typing.Dict:
         if (x, y) in non_traversable:
             is_move_safe[direction] = False
 
-
     # Are there any safe moves left?
     safe_moves = []
     for move, isSafe in is_move_safe.items():
         if isSafe:
             safe_moves.append(move)
 
+    # Fallback strategy if no moves are safe
     if len(safe_moves) == 0:
-        print(
-            f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
-        return {"move": "down"}
+        if safe_moves_back_up:
+            chosen_move = random.choice(safe_moves_back_up)
+            print(f"MOVE {game_state['turn']}: No safe moves detected! Fallback to backup move: {chosen_move}")
+            return {"move": chosen_move}
+        else:
+            print(f"MOVE {game_state['turn']}: No moves available! Defaulting to 'down'")
+            return {"move": "down"}
 
     # get all other snakes
     opponents = []
@@ -152,11 +163,12 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # print("Valid safe moves:", valid_safe_moves)
 
     # Evaluate each valid safe move using BRS
-    best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves)
-    best_score = float('-inf')
-    depth = 2  # Adjust depth based on performance needs
-    alpha = float('-inf')
-    beta = float('inf')
+    best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves) \
+        if safe_moves else random.choice(safe_moves_back_up)
+    best_score = -np.inf
+    depth = 7  # Adjust depth based on performance needs
+    alpha = -np.inf
+    beta = np.inf
 
     for move in valid_safe_moves:
         new_state, _ = get_state_from_move(game_state, my_name, move)
@@ -167,8 +179,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
             best_score = score
             best_move = move
 
-    print(f"MOVE {game_state['turn']}: {best_move}")
-    print("Move: " + best_move + " for " + my_name)
+    print("Move " + str(game_state["turn"]) + ": " + best_move + " for " + my_name)
     return {"move": best_move}
 
 
