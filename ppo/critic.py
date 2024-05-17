@@ -7,7 +7,7 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
 
         # 11 x 11 -> 11 x 11
-        self.conv1 = nn.Conv2d(in_channels=13, out_channels=32, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=5, out_channels=32, kernel_size=3, padding=1)
         # 11 x 11 -> 10 x 10
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=2)
         # 10 x 10 -> 9 x 9
