@@ -166,7 +166,7 @@ def move(game_state: typing.Dict) -> typing.Dict:
     best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves) \
         if safe_moves else random.choice(safe_moves_back_up)
     best_score = -np.inf
-    depth = 7  # Adjust depth based on performance needs
+    depth = 0  # Adjust depth based on performance needs
     alpha = -np.inf
     beta = np.inf
 

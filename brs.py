@@ -18,58 +18,46 @@ def brs(alpha: float, beta: float, depth: int, turn: str, game_state: dict,
     int: The heuristic value of the node.
     """
     # if depth is 0, return the evaluation of the board
-    # print(f"depth: {depth}, alpha: {alpha}, beta: {beta}")
+    print(f"depth: {depth}, alpha: {alpha}, beta: {beta}")
     if depth <= 0:
-        if turn == "MAX":
+        return evaluate(game_state, player_name, is_move_safe)
 
-            return evaluate(game_state, player_name, is_move_safe)
-        else:
-
-            return - evaluate(game_state, player_name, is_move_safe)
-    # Determine the moves based on the turn
-    # MAX is us
     if turn == 'MAX':
+        max_eval = float('-inf')
         moves = get_possible_moves(game_state, player_name, is_move_safe)
-        next_turn = 'MIN'
-    # MIN are the enemies
+        for agent_name, move in moves:
+            new_state, _ = get_state_from_move(game_state, agent_name, move)
+            value = -brs(-beta, -alpha, depth - 1, 'MIN', new_state, agent_name, opponents, is_move_safe)
+            max_eval = max(max_eval, value)
+            alpha = max(alpha, value)  # Update alpha
+            if beta <= alpha:
+                break
+        return max_eval
     else:
+        min_eval = float('inf')
         moves = []
         for opponent in opponents:
-            if opponent["name"] == player_name:
-                continue
-            moves.extend(
-                get_possible_moves(game_state, opponent["name"], is_move_safe))
-        next_turn = 'MAX'
-
-    # Explore each move
-    for agent_name, move in moves:
-        # print(f"Trying Move: {move} for {agent_name}, Alpha: {alpha}, Beta: {beta}")
-
-        # get the new state and evaluate it
-        new_state, _ = get_state_from_move(game_state, agent_name, move)
-        filtered_opponents = [
-            snake for snake in new_state["board"]["snakes"]
-            if snake['name'] != agent_name
-        ]
-
-        value = -brs(-beta, -alpha, depth - 1, next_turn, new_state,
-                     agent_name, filtered_opponents, is_move_safe)
-
-        if value >= beta:
-            print(f"beta done {value}")
-            return value
-        alpha = max(alpha, value)
-    print(f"alpha done {alpha}")
-    return alpha
+            if opponent["name"] != player_name:
+                moves.extend(get_possible_moves(game_state, opponent["name"], is_move_safe))
+        for agent_name, move in moves:
+            new_state, _ = get_state_from_move(game_state, agent_name, move)
+            value = -brs(-beta, -alpha, depth - 1, 'MAX', new_state, agent_name, opponents, is_move_safe)
+            min_eval = min(min_eval, value)
+            beta = min(beta, value)  # Update beta
+            if alpha >= beta:
+                break
+        return min_eval
 
 
 def get_possible_moves(game_state: dict, player_name: str, is_move_safe: dict) -> list:
-
     snake = next(s for s in game_state["board"]["snakes"] if s["name"] == player_name)
     head = snake["body"][0]
     board_width = game_state["board"]["width"]
     board_height = game_state["board"]["height"]
-
+    opponents = []
+    for snake in game_state['board']['snakes']:
+        if snake["name"] != player_name:
+            opponents.append(snake)
     # Define potential movement directions
     direction_map = {
         "up": (0, -1),
@@ -78,14 +66,15 @@ def get_possible_moves(game_state: dict, player_name: str, is_move_safe: dict) -
         "right": (1, 0)
     }
 
+    # Start with all theoretically possible moves
     possible_moves = []
-    # Check each direction to ensure the move stays within the board boundaries
     for move, (dx, dy) in direction_map.items():
         new_x = head['x'] + dx
         new_y = head['y'] + dy
-        # Only add the move if it's within bounds and deemed safe
-        if 0 <= new_x < board_width and 0 <= new_y < board_height and is_move_safe.get(move, False):
+        # Check if the move is within bounds
+        if 0 <= new_x < board_width and 0 <= new_y < board_height:
             possible_moves.append([player_name, move])
+
 
     return possible_moves
 
@@ -116,53 +105,52 @@ def get_state_from_move(game_state, player_name, move):
 
 def evaluate(game_state: dict, player_name: str, is_move_safe: dict) -> int:
     """Evaluate the state of the game and calculate a heuristic based on strategic priorities."""
-    # Find the player's snake
-    this_snake = next(snake for snake in game_state["board"]["snakes"]
-                      if snake["name"] == player_name)
+    this_snake = next(snake for snake in game_state["board"]["snakes"] if snake["name"] == player_name)
     this_head = this_snake["body"][0]
 
-    # Heuristic components
-    food_score, food_location = calculate_food_score(game_state, this_head)
-    separation_score = 0
+    # Components of the heuristic
+    food_score = calculate_food_score(game_state, this_head)
+    separation_score = calculate_separation_score(game_state, this_head, player_name)
 
-    # Evaluate against all other snakes
+    # Combine the scores into a total heuristic value
+    # Adjust the weighting factors according to your strategy's needs
+    total_score = food_score + separation_score
+    return total_score
+
+def calculate_separation_score(game_state, head, player_name):
+    """Calculate a score that penalizes being too close to other snakes."""
+    penalty_score = 0
+    min_safe_distance = 2  # Define a minimum safe distance
+
     for snake in game_state["board"]["snakes"]:
         if snake["name"] != player_name:
             other_head = snake["body"][0]
-            separation_score += calculate_separation_score(
-                this_head, other_head)
-            """if food_location and manhattan_distance(food_location,
-                                                    other_head) > 2:
-                food_score += food_score * 100"""
-    # You can adjust the influence of separation_score by changing its weighting factor
-    total_score = food_score
-    # print(f"Evaluating for {player_name}: Food Score = {food_score}, Separation Score = {separation_score}, Total Score = {total_score}")
+            distance = manhattan_distance(head, other_head)
+            if distance < min_safe_distance:
+                penalty_score -= 20 / (distance + 0.1)  # Penalize close distances more heavily
 
-    return total_score
+    return penalty_score
 
 
 def calculate_food_score(game_state, head):
-    """Calculate a score based on the distance to the closest food.
-    Closer food will have a higher score."""
-    min_distance = float('inf')
+    """Calculate a score based on the distance to the closest food, considering the risk."""
     closest_food_score = 0
-    food_location = None
+    min_distance = float('inf')
     for food in game_state['board']['food']:
-        food_distance = euclidean_distance(food, head)
-        if food_distance < min_distance:
-            min_distance = food_distance
-            # Higher score for closer food
-            closest_food_score = 100 / (np.finfo(float).eps + food_distance
-                                        )  # Using inverse to ensure closer food gets higher score
-            food_location = food
-    return closest_food_score, food_location
+        food_distance = manhattan_distance(food, head)
+        # Calculate risk based on proximity of other snakes to this food
+        risk_factor = 1
+        for snake in game_state['board']['snakes']:
+            if snake['body'][0] != head:  # Don't consider our own head
+                distance_to_food = manhattan_distance(food, snake['body'][0])
+                if distance_to_food < food_distance:
+                    risk_factor += 1.5  # Increase the risk if other snakes are closer
 
+        food_score = 100 / (0.000001 + food_distance * risk_factor)  # Adjust food score by risk
+        if food_score > closest_food_score:
+            closest_food_score = food_score
 
-def calculate_separation_score(head_one, head_two):
-    """Calculate a score that rewards distance between two heads."""
-    distance = manhattan_distance(head_one, head_two)
-
-    return 50 * np.log(10 * distance)
+    return closest_food_score
 
 
 def manhattan_distance(a, b):
