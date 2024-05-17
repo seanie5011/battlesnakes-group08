@@ -375,6 +375,7 @@ class BattlesnakeGym(gym.Env):
                 reward[i] += self.rewards.get_reward("another_turn", i, episodes)
         
         # force spawn food if there are none currently
+        # note that stats like food spawn chance and minimum number can be found in game state in an online game
         self.food.end_of_turn(self.snakes.get_snake_51_map(), force_spawn=(not np.any(self.food.locations_map==1)))
 
         if self.number_of_snakes > 1 and np.sum(snakes_alive) <= 1:

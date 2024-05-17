@@ -12,7 +12,13 @@
 
 import random
 import typing
+from brs import *
+from main_utils import get_observation_from_state
+from battlesnakegym.utils import process_observation, get_real_move_from_oriented
+from ppo.ppo import PPO
 
+# Get RL model
+model = PPO("agent0", "models/agent0.pth")
 
 # info is called when you create your Battlesnake on play.battlesnake.com
 # and controls your Battlesnake's appearance
@@ -46,86 +52,148 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # assume all moves are valid at the start
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
-    # get our head and body
-    head = game_state["you"]["body"][0]  # Coordinates of your head
-    body = game_state["you"]["body"][
-        1:]  # Coordinates of each "bodypart" (bodypart after head)
+    # get our name and our teammates name
+    my_name = game_state["you"]["name"]
+    my_length = len(game_state["you"]["body"])
+    teammates_name = "SORZWE2" if my_name == "SORZWE" else "SORZWE"
+    enemy_ids = [snake["id"] for snake in game_state["board"]["snakes"] if snake["name"] != my_name and snake["name"] != teammates_name]
 
+    # get our head and body
+    my_id = game_state["you"]["id"]
+    head = game_state["you"]["body"][0]  # Coordinates of your head
+    body = game_state["you"]["body"][1:-1]  # TODO: (bodypart after head, tail not needed??)
+    all_snakes = game_state['board']['snakes']
     # Prevent the Battlesnake from moving out of bounds
     # if width is 11, then maximum x coordinate is 10
     # i.e bottomleft corner is (0, 0), topright is (width-1, height-1)
     board_width = game_state['board']['width']
     board_height = game_state['board']['height']
-    if head["x"] + 1 == board_width:
-        is_move_safe["right"] = False
-    if head["x"] == 0:
-        is_move_safe["left"] = False
-    if head["y"] == 0:
-        is_move_safe["down"] = False
-    if head["y"] + 1 == board_height:
-        is_move_safe["up"] = False
+    tail = game_state["you"]["body"][-1]
 
-    # Prevent the Battlesnake from colliding with itself
-    # check each bodypart and make sure we will not collide with it in the next move
-    for bodypart in body:
-        if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
-                "y"]:  # bodypart is directly left of head, don't move left
-            is_move_safe["left"] = False
-        if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
-                "y"]:  # bodypart is directly right of head, don't move right
-            is_move_safe["right"] = False
-        if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
-                "x"]:  # bodypart is directly below head, don't move down
-            is_move_safe["down"] = False
-        if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
-                "x"]:  # bodypart is directly above head, don't move up
-            is_move_safe["up"] = False
+    # if head["x"] + 1 == board_width:
+    #     is_move_safe["right"] = False
+    # if head["x"] == 0:
+    #     is_move_safe["left"] = False
+    # if head["y"] == 0:
+    #     is_move_safe["down"] = False
+    # if head["y"] + 1 == board_height:
+    #     is_move_safe["up"] = False
 
-    # Prevent the Battlesnake from colliding with other Battlesnakes
-    # check every opponent and make sure we do not collide with any of their bodyparts in the next move
-    opponents = game_state['board']['snakes']
-    for opponent in opponents:
-        # dont do anything if it is us
-        if opponent["name"] == "SORZWE":
-            continue
-        # check each opponents bodyparts (including their head)
-        for bodypart in opponent["body"]:
-            if bodypart["x"] == head["x"] - 1 and bodypart["y"] == head[
-                    "y"]:  # bodypart is directly left of head, don't move left
-                is_move_safe["left"] = False
-            if bodypart["x"] == head["x"] + 1 and bodypart["y"] == head[
-                    "y"]:  # bodypart is directly right of head, don't move right
-                is_move_safe["right"] = False
-            if bodypart["y"] == head["y"] - 1 and bodypart["x"] == head[
-                    "x"]:  # bodypart is directly below head, don't move down
-                is_move_safe["down"] = False
-            if bodypart["y"] == head["y"] + 1 and bodypart["x"] == head[
-                    "x"]:  # bodypart is directly above head, don't move up
-                is_move_safe["up"] = False
+    # # Self-collision avoidance
+    # for bodypart in body:
+    #     if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+    #         is_move_safe["left"] = False
+    #     if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+    #         is_move_safe["right"] = False
+    #     if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+    #         is_move_safe["down"] = False
+    #     if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+    #         is_move_safe["up"] = False
 
-    # Are there any safe moves left?
-    safe_moves = []
-    for move, isSafe in is_move_safe.items():
-        if isSafe:
-            safe_moves.append(move)
+    # # Avoid collisions with all snakes, including another "SORZWE"
+    # for snake in all_snakes:
+    #     if snake["name"] == my_name:
+    #         continue
+    #     is_teammate = (snake["name"] == "SORZWE") or (snake["name"] == "SORZWE2")
+    #     for bodypart in snake["body"]:
+    #         if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+    #             is_move_safe["left"] = False
+    #         if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+    #             is_move_safe["right"] = False
+    #         if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+    #             is_move_safe["down"] = False
+    #         if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+    #             is_move_safe["up"] = False
 
-    if len(safe_moves) == 0:
-        print(
-            f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
-        return {"move": "down"}
+    # # Are there any safe moves left?
+    # safe_moves_back_up = []
+    # for move, isSafe in is_move_safe.items():
+    #     if isSafe:
+    #         safe_moves_back_up.append(move)
 
-    # get all other snakes
-    opponents = [
-        snake["name"] for snake in game_state["board"]["snakes"]
-        if snake["name"] != "SORZWE"
-    ]
+    # # TODO: if tree depth and heuristic can work properly, we wont need this then
+    # non_traversable = set()
+    # for snake in all_snakes:
+    #     other_snake_head = snake["body"][0]
+    #     if snake["name"] == teammates_name or (snake["name"] != my_name and len(snake["body"]) >= my_length):
+    #         non_traversable.add((other_snake_head['x'] + 1, other_snake_head['y']))
+    #         non_traversable.add((other_snake_head['x'] - 1, other_snake_head['y']))
+    #         non_traversable.add((other_snake_head['x'], other_snake_head['y'] + 1))
+    #         non_traversable.add((other_snake_head['x'], other_snake_head['y'] - 1))
 
-    # want to get the best move
-    best_move = random.choice(safe_moves)  # by default make random move
+    # possible_moves = {
+    #     "up": (head['x'], head['y'] + 1),
+    #     "down": (head['x'], head['y'] - 1),
+    #     "left": (head['x'] - 1, head['y']),
+    #     "right": (head['x'] + 1, head['y'])
+    # }
 
-    print(f"MOVE {game_state['turn']}: {best_move}")
+    # for direction, (x, y) in possible_moves.items():
+    #     if (x, y) in non_traversable:
+    #         is_move_safe[direction] = False
 
-    return {"move": best_move}
+    # # Are there any safe moves left?
+    # safe_moves = []
+    # for move, isSafe in is_move_safe.items():
+    #     if isSafe:
+    #         safe_moves.append(move)
+
+    # # Fallback strategy if no moves are safe
+    # if len(safe_moves) == 0:
+    #     if safe_moves_back_up:
+    #         chosen_move = random.choice(safe_moves_back_up)
+    #         print(f"MOVE {game_state['turn']}: No safe moves detected! Fallback to backup move: {chosen_move}")
+    #         return {"move": chosen_move}
+    #     else:
+    #         print(f"MOVE {game_state['turn']}: No moves available! Defaulting to 'down'")
+    #         return {"move": "down"}
+
+    # # get all other snakes
+    # opponents = []
+    # for snake in all_snakes:
+    #     # if snake["name"] == teammates_name or snake["name"] != my_name:
+    #     if snake["name"] != my_name:
+    #         opponents.append(snake)  # TODO maybe entire object needed??
+
+    # # Determine valid safe moves where the snake can still reach its tail
+    # valid_safe_moves = []
+    # # print("safe moves: ", safe_moves)
+    # for move in safe_moves:
+    #     new_state, snake_index = get_state_from_move(game_state, my_name, move)
+    #     simulated_head = new_state["board"]["snakes"][snake_index]["body"][0]
+    #     simulated_body = new_state["board"]["snakes"][snake_index]["body"]
+    #     simulated_tail = new_state["board"]["snakes"][snake_index]["body"][-1]
+    #     if can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
+    #         valid_safe_moves.append(move)
+
+    # # print("Valid safe moves:", valid_safe_moves)
+
+    # # Evaluate each valid safe move using BRS
+    # best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves) \
+    #     if safe_moves else random.choice(safe_moves_back_up)
+    # best_score = -np.inf
+    # depth = 0  # Adjust depth based on performance needs
+    # alpha = -np.inf
+    # beta = np.inf
+
+    # for move in valid_safe_moves:
+    #     new_state, _ = get_state_from_move(game_state, my_name, move)
+    #     score = brs(alpha, beta, depth, 'MAX', new_state, my_name, opponents, is_move_safe)
+    #     # print("getting score ??????? ", score)
+    #     if score > best_score:
+    #         # print("getting score update", score)
+    #         best_score = score
+    #         best_move = move
+    
+    # transform board into observation
+    observation = get_observation_from_state(game_state, my_name, teammates_name, enemy_ids)
+    observation, turns = process_observation(observation.copy(), 0)  # this snake will always be 0
+    # Run inference on RL model
+    action, _, _, _ = model.predict(observation)
+    move_rl = get_real_move_from_oriented(action, turns)
+
+    print("Move " + str(game_state["turn"]) + ": " + move_rl + " for " + my_name)
+    return {"move": move_rl}
 
 
 # Start server when `python main.py` is run
