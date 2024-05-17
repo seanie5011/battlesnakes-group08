@@ -44,6 +44,7 @@ def end(game_state: typing.Dict):
 # Valid moves are "up", "down", "left", or "right"
 # See https://docs.battlesnake.com/api/example-move for available data
 def move(game_state: typing.Dict) -> typing.Dict:
+    # print(game_state)
     # assume all moves are valid at the start
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
@@ -157,16 +158,17 @@ def move(game_state: typing.Dict) -> typing.Dict:
         simulated_head = new_state["board"]["snakes"][snake_index]["body"][0]
         simulated_body = new_state["board"]["snakes"][snake_index]["body"]
         simulated_tail = new_state["board"]["snakes"][snake_index]["body"][-1]
-        if can_reach_tail(new_state, simulated_head, simulated_tail, simulated_body, move, is_move_safe):
+        if can_reach_tail(new_state, simulated_head, simulated_tail):
             valid_safe_moves.append(move)
 
-    # print("Valid safe moves:", valid_safe_moves)
-
+    """print("Valid safe moves:", valid_safe_moves)
+    x = simulate_moves_and_check_reachability(game_state, my_name)
+    print("Valid safe moves again: ", x, "++++++++++++++++++++++++++++++++++++")"""
     # Evaluate each valid safe move using BRS
     best_move = random.choice(valid_safe_moves) if valid_safe_moves else random.choice(safe_moves) \
         if safe_moves else random.choice(safe_moves_back_up)
     best_score = -np.inf
-    depth = 0  # Adjust depth based on performance needs
+    depth = 3  # Adjust depth based on performance needs
     alpha = -np.inf
     beta = np.inf
 

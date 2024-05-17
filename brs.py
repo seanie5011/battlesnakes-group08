@@ -5,48 +5,47 @@ import numpy as np
 
 def brs(alpha: float, beta: float, depth: int, turn: str, game_state: dict,
         player_name: str, opponents: list, is_move_safe: dict) -> int:
-    """
-    Implements the Best-Reply Search (BRS) algorithm.
 
-    Args:
-    alpha (int): Alpha value for alpha-beta pruning.
-    beta (int): Beta value for alpha-beta pruning.
-    depth (int): Current depth in the search tree.
-    turn (str): Current turn, either 'MAX' or 'MIN'.
-
-    Returns:
-    int: The heuristic value of the node.
-    """
-    # if depth is 0, return the evaluation of the board
-    print(f"depth: {depth}, alpha: {alpha}, beta: {beta}")
     if depth <= 0:
-        return evaluate(game_state, player_name, is_move_safe)
+        if turn == "MAX":
 
+            return evaluate(game_state, player_name)
+        else:
+
+            return - evaluate(game_state, player_name)
+    # Determine the moves based on the turn
+    # MAX is us
     if turn == 'MAX':
-        max_eval = float('-inf')
-        moves = get_possible_moves(game_state, player_name, is_move_safe)
-        for agent_name, move in moves:
-            new_state, _ = get_state_from_move(game_state, agent_name, move)
-            value = -brs(-beta, -alpha, depth - 1, 'MIN', new_state, agent_name, opponents, is_move_safe)
-            max_eval = max(max_eval, value)
-            alpha = max(alpha, value)  # Update alpha
-            if beta <= alpha:
-                break
-        return max_eval
+        moves = compute_possible_moves(game_state, player_name)
+        next_turn = 'MIN'
+    # MIN are the enemies
     else:
-        min_eval = float('inf')
         moves = []
         for opponent in opponents:
-            if opponent["name"] != player_name:
-                moves.extend(get_possible_moves(game_state, opponent["name"], is_move_safe))
-        for agent_name, move in moves:
-            new_state, _ = get_state_from_move(game_state, agent_name, move)
-            value = -brs(-beta, -alpha, depth - 1, 'MAX', new_state, agent_name, opponents, is_move_safe)
-            min_eval = min(min_eval, value)
-            beta = min(beta, value)  # Update beta
-            if alpha >= beta:
-                break
-        return min_eval
+            if opponent["name"] == player_name:
+                continue
+            moves.extend(
+                compute_possible_moves(game_state, opponent["name"]))
+        next_turn = 'MAX'
+
+    # Explore each move
+    for agent_name, move in moves:
+
+        new_state, _ = get_state_from_move(game_state, agent_name, move)
+        filtered_opponents = [
+            snake for snake in new_state["board"]["snakes"]
+            if snake['name'] != agent_name
+        ]
+
+        value = -brs(-beta, -alpha, depth - 1, next_turn, new_state,
+                     agent_name, filtered_opponents, is_move_safe)
+
+        if value >= beta:
+            print(f"beta done {value}")
+            return value
+        alpha = max(alpha, value)
+    print(f"alpha done {alpha}")
+    return alpha
 
 
 def get_possible_moves(game_state: dict, player_name: str, is_move_safe: dict) -> list:
@@ -75,7 +74,6 @@ def get_possible_moves(game_state: dict, player_name: str, is_move_safe: dict) -
         if 0 <= new_x < board_width and 0 <= new_y < board_height:
             possible_moves.append([player_name, move])
 
-
     return possible_moves
 
 
@@ -103,7 +101,7 @@ def get_state_from_move(game_state, player_name, move):
     return new_game_state, snake_index
 
 
-def evaluate(game_state: dict, player_name: str, is_move_safe: dict) -> int:
+def evaluate(game_state: dict, player_name: str) -> int:
     """Evaluate the state of the game and calculate a heuristic based on strategic priorities."""
     this_snake = next(snake for snake in game_state["board"]["snakes"] if snake["name"] == player_name)
     this_head = this_snake["body"][0]
@@ -116,6 +114,7 @@ def evaluate(game_state: dict, player_name: str, is_move_safe: dict) -> int:
     # Adjust the weighting factors according to your strategy's needs
     total_score = food_score + separation_score
     return total_score
+
 
 def calculate_separation_score(game_state, head, player_name):
     """Calculate a score that penalizes being too close to other snakes."""
@@ -161,15 +160,7 @@ def euclidean_distance(a, b):
     return np.sqrt((a["x"] - b["x"]) ** 2 + (a["y"] - b["y"]) ** 2)
 
 
-def can_reach_tail(game_state, head, tail, snake_body, move, is_move_safe):
-    def reconstruct_path(came_from, current):
-        path = [current]
-        while current in came_from:
-            current = came_from[current]
-            path.append(current)
-        path.reverse()
-        return path
-
+def can_reach_tail(game_state, head, tail):
     start_x, start_y = head['x'], head['y']
     target_x, target_y = tail['x'], tail['y']
 
@@ -191,8 +182,6 @@ def can_reach_tail(game_state, head, tail, snake_body, move, is_move_safe):
     while open_set:
         _, x, y = heapq.heappop(open_set)
         if (x, y) == (target_x, target_y):
-            # Path found, reconstruct it
-            path = reconstruct_path(came_from, (x, y))
             return True
 
         visited.add((x, y))
@@ -215,24 +204,105 @@ def can_reach_tail(game_state, head, tail, snake_body, move, is_move_safe):
     return False
 
 
-def simulate_moves_and_check_reachability(game_state, player_name,
-                                          is_move_safe):
-    safe_moves = [move for move, is_safe in is_move_safe.items() if is_safe]
-    viable_moves = []
+def compute_possible_moves(game_state, player_name):
+    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
 
-    for move in safe_moves:
-        # Simulate the move
-        new_state, _ = get_state_from_move(game_state, player_name, move)
+    direction_map = {
+        "up": (0, 1),
+        "down": (0, -1),
+        "left": (-1, 0),
+        "right": (1, 0)
+    }
 
-        # Get the snake's new head position after the move
-        snake = next(s for s in new_state["board"]["snakes"]
-                     if s["name"] == player_name)
-        new_head = snake["body"][0]
-        tail = snake["body"][-1]
+    my_snake = next((snake for snake in game_state['board']['snakes'] if snake['name'] == player_name), None)
 
-        # Check if the snake can reach its tail after this move
-        if can_reach_tail(new_state, new_head, tail, snake["body"], move,
-                          is_move_safe):
-            viable_moves.append(move)
+    head = my_snake["body"][0]  # Coordinates of your head
+    body = my_snake["body"][1:-1]  # TODO: (bodypart after head, tail not needed??)
+    all_snakes = game_state['board']['snakes']
+    # Prevent the Battlesnake from moving out of bounds
+    # if width is 11, then maximum x coordinate is 10
+    # i.e bottomleft corner is (0, 0), topright is (width-1, height-1)
+    board_width = game_state['board']['width']
+    board_height = game_state['board']['height']
+    tail = game_state["you"]["body"][-1]
 
-    return viable_moves
+    if head["x"] + 1 == board_width:
+        is_move_safe["right"] = False
+    if head["x"] == 0:
+        is_move_safe["left"] = False
+    if head["y"] == 0:
+        is_move_safe["down"] = False
+    if head["y"] + 1 == board_height:
+        is_move_safe["up"] = False
+
+    # Self-collision avoidance
+    for bodypart in body:
+        if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+            is_move_safe["left"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+            is_move_safe["right"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+            is_move_safe["down"] = False
+        if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+            is_move_safe["up"] = False
+
+    # Avoid collisions with all snakes, including another "SORZWE"
+    for snake in all_snakes:
+        if snake["name"] == player_name:
+            continue
+        for bodypart in snake["body"]:
+            if (bodypart["x"], bodypart["y"]) == (head["x"] - 1, head["y"]):
+                is_move_safe["left"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"] + 1, head["y"]):
+                is_move_safe["right"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] - 1):
+                is_move_safe["down"] = False
+            if (bodypart["x"], bodypart["y"]) == (head["x"], head["y"] + 1):
+                is_move_safe["up"] = False
+
+    non_traversable = set()
+    for snake in all_snakes:
+        other_snake_head = snake["body"][0]
+        if snake["name"] != player_name:
+            non_traversable.add((other_snake_head['x'] + 1, other_snake_head['y']))
+            non_traversable.add((other_snake_head['x'] - 1, other_snake_head['y']))
+            non_traversable.add((other_snake_head['x'], other_snake_head['y'] + 1))
+            non_traversable.add((other_snake_head['x'], other_snake_head['y'] - 1))
+
+    possible_moves = {
+        "up": (head['x'], head['y'] + 1),
+        "down": (head['x'], head['y'] - 1),
+        "left": (head['x'] - 1, head['y']),
+        "right": (head['x'] + 1, head['y'])
+    }
+
+    for direction, (x, y) in possible_moves.items():
+        if (x, y) in non_traversable:
+            is_move_safe[direction] = False
+
+    possible_moves = []
+    for direction, (dx, dy) in direction_map.items():
+        new_x = head['x'] + dx
+        new_y = head['y'] + dy
+        if 0 <= new_x < board_width and 0 <= new_y < board_height:
+            possible_moves.append(direction)
+
+    valid_safe_moves = []
+    for direction in possible_moves:
+        if is_move_safe.get(direction, True):  # Ensure the direction is still considered safe
+            new_state, _ = get_state_from_move(deepcopy(game_state), player_name, direction)
+            simulated_head = new_state["you"]["body"][0]
+            simulated_tail = new_state["you"]["body"][-1]
+            if can_reach_tail(new_state, simulated_head, simulated_tail):
+                valid_safe_moves.append([player_name, direction])
+
+    if not valid_safe_moves:
+        if possible_moves:
+            fallback_possible_moves = []
+            for move in possible_moves:
+                fallback_possible_moves.append([player_name, move])
+            return fallback_possible_moves
+        else:
+            return [player_name, "down"]
+
+    return valid_safe_moves
