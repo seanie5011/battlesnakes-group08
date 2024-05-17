@@ -387,7 +387,7 @@ class BattlesnakeGym(gym.Env):
         else:
             done = False
             
-        snake_dead_dict = {i: a for i, a in enumerate(np.logical_not(snakes_alive).tolist())}
+        snakes_dead_dict = {i: a for i, a in enumerate(np.logical_not(snakes_alive).tolist())}
         self.turn_count += 1
 
         snakes_health = {}
@@ -405,7 +405,7 @@ class BattlesnakeGym(gym.Env):
             print("actions {}".format(actions))
             raise
             
-        return self._get_state(), reward, snake_dead_dict, {'current_turn': self.turn_count,
+        return self._get_state(), reward, snakes_alive, {'current_turn': self.turn_count,
                                                                    'snake_health': snakes_health,
                                                                    'snake_info': snake_info,
                                                                    'snake_max_len': self.snake_max_len}

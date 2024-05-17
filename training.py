@@ -18,16 +18,16 @@ actions_dict = {
 if __name__ == "__main__":
     # get environment and agent
     env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, verbose=VERBOSE)
-    agents = [PPO("test_agent0", "models/test_agent0.pth"), PPO("test_agent1", "models/test_agent1.pth"), PPO("test_agent2", "models/test_agent2.pth"), PPO("test_agent3", "models/test_agent3.pth")]
+    agents = [PPO("agent0", "models/agent0.pth"), PPO("agent1", "models/agent1.pth"), PPO("agent2", "models/agent2.pth"), PPO("agent3", "models/agent3.pth")]
 
     # set properties
-    n_games = 300
+    n_games = 1000
 
     # keeping track
     learning_steps = np.zeros((4,))
     n_steps = np.zeros((4,))
-    best_score = np.zeros((4,))
-    avg_score = np.zeros((4,))
+    best_score = np.full((4,), -100.0)
+    avg_score = np.full((4,), -100.0)
     score_history = [[], [], [], []]
 
     # play all games
@@ -55,8 +55,8 @@ if __name__ == "__main__":
                 actions_to_take.append(actions_dict[get_real_move_from_oriented(action, turns)])
 
             # get new state
-            observation, reward, snakes_dead_dict, info = env.step(actions_to_take)
-            done = snakes_dead_dict[0]
+            observation, reward, snakes_alive, info = env.step(actions_to_take)
+            done = (np.sum(snakes_alive) <= 1)  # if 1 or less snakes are alive, done
 
             # for every agent
             for i, agent in enumerate(agents):
@@ -78,7 +78,7 @@ if __name__ == "__main__":
             # end of episode, set variables
             score_history[i].append(score[i])
             avg_score[i] = np.mean(score_history[i][-100:])  # average over previous 100 games
-            if avg_score[i] > best_score[i]:
+            if avg_score[i] > best_score[i] and (k > 100 or k == 1):
                 best_score[i] = avg_score[i]
                 agent.save_model(n_steps[i])
         

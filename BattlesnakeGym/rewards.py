@@ -30,13 +30,13 @@ class SimpleRewards(Rewards):
                             "won": 100,
                             "died": -100,
                             "ate_another_snake": 50,
-                            "hit_wall": 0,
-                            "hit_other_snake": 0,
-                            "hit_self": 0,
-                            "was_eaten": 0,
-                            "other_snake_hit_body": 0,
+                            "hit_wall": -100,
+                            "hit_other_snake": -100,
+                            "hit_self": -100,
+                            "was_eaten": -100,
+                            "other_snake_hit_body": 50,
                             "forbidden_move": 0,
-                            "starved": 0}
+                            "starved": -100}
 
     def get_reward(self, name, snake_id, episode):
         return self.reward_dict[name]

@@ -15,7 +15,7 @@ class PPO():
         # HYPERPARAMETERS
         self.gamma = 0.999  # discount factor
         self.batch_size = 32
-        self.buffer_size = 20  # number of steps before update (2048)
+        self.buffer_size = 1024  # number of steps before update (2048)
         self.n_epochs = 4
         self.policy_clip = 0.2
         self.entropy_coef = 0.01

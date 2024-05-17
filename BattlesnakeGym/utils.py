@@ -82,22 +82,8 @@ def get_distance(point1, point2):
 
 def process_observation(_observation, current_snake_index):
     """
-    Processes the observation from the gym to be a single 11x11 array.
+    Processes the observation from the gym to be oriented such that player current_snake_index is facing up.
     Assumes a 4-player 11x11 game.
-
-    Where:
-        0 denotes free space
-        1 denotes food
-        2 denotes player 0s head
-        3 denotes player 0s body
-        4 denotes player 1s head
-        5 denotes player 1s body
-        6 denotes player 2s head
-        7 denotes player 2s body
-        8 denotes player 3s head
-        9 denotes player 3s body
-    
-    oriented such that player current_snake_index 
     """
 
     observation = _observation.copy()
@@ -137,19 +123,6 @@ def process_observation(_observation, current_snake_index):
         
         observation = np.rot90(observation, turns).copy()
     
-    # # now process so that players values are as detailed above
-    # # four snakes
-    # for snake_index in range(4):
-    #     # get this snakes
-    #     temp = observation[:,:,snake_index + 1].copy()
-    #     # set head and body
-    #     temp[observation[:,:,snake_index + 1] == 1] = 2 + 2 * snake_index
-    #     temp[observation[:,:,snake_index + 1] > 1] = 3 + 2 * snake_index
-    #     # set back
-    #     observation[:,:,snake_index + 1] = temp
-    
-    # # sum everything to put all layers on one
-    # return np.sum(observation, axis=2), turns
     return observation.reshape(5, 11, 11), turns
 
 def get_real_move_from_oriented(move: int, turns: int) -> str:

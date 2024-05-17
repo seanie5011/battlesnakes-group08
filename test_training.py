@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 from battlesnakegym import snake_gym
 
@@ -8,7 +9,7 @@ VERBOSE = 0
 env = snake_gym.BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, verbose=VERBOSE)
 
 # run for number of episodes
-episodes = 1  # for completely random games on a 11x11 map with 4 snakes, each snake only moves 3.7 times before death
+episodes = 10  # for completely random games on a 11x11 map with 4 snakes, each snake only moves 3.7 times before death
 start_time = time.time()
 total_score = 0
 total_steps = 0
@@ -29,9 +30,9 @@ for episode in range(0, episodes):
     while not done:
         # get action and check environment
         action = env.action_space.sample()
-        observation, reward, snakes_dead_dict, info = env.step(action)
+        observation, reward, snakes_alive, info = env.step(action)
         score += reward[0]
-        done = snakes_dead_dict[0]
+        done = (np.sum(snakes_alive) <= 1)  # if 1 or less snakes are alive, done
         steps += 1
 
         # rendering
