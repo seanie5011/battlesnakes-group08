@@ -15,7 +15,7 @@ class PPO():
         # HYPERPARAMETERS
         self.gamma = 0.999  # discount factor
         self.batch_size = 32
-        self.buffer_size = 1024  # number of steps before update (2048)
+        self.buffer_size = 2048  # number of steps before update (2048)
         self.n_epochs = 4
         self.policy_clip = 0.2
         self.entropy_coef = 0.01
@@ -139,15 +139,20 @@ class PPO():
 
         return action, action_probs, value, actor_probs
         
-    def save_model(self, curr_step) -> None: 
+    def save_model(self, curr_step, label=None) -> None: 
         data_to_save = {
             'actor': self.actor.state_dict(),
             'critic': self.critic.state_dict(),
             'curr_step': curr_step
         }
 
-        torch.save(data_to_save, self.model_save_path)
-        print(f"\n    SAVED model to {self.model_save_path}\n")
+        # if no label, default to model save path
+        # so label must still be a path
+        if label == None:
+            label = self.model_save_path
+
+        torch.save(data_to_save, label)
+        print(f"\n    SAVED model to {label}\n")
 
     def load_model(self, path) -> dict:
         self.model_save_path = path
