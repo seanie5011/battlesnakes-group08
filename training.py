@@ -22,18 +22,18 @@ if __name__ == "__main__":
     env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=GameTeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 
     # get agent and enemy
-    agent_name = "agent_211212_18052024"
+    agent_name = "agent_230856_18052024"
     agent = PPO("agent", "models/" + agent_name + ".pth")
-    enemies = [PPO("enemy", "models/agent_194852_18052024.pth")]
+    enemies = [PPO("enemy", "models/agent_223002_18052024.pth")]
 
     # set properties
-    n_games = 10000
-    n_history = 1000
+    n_games = 400000
+    n_history = 10000
 
     # keeping track
-    learning_steps = 284  # update these as needed
-    n_steps = 582801  # update these as needed
-    n_k = 87830  # update these as needed
+    n_k = 88831  # update these as needed
+    n_steps = 592873  # update these as needed
+    learning_steps = 289  # update these as needed
     update_iterations = 1
 
     # play all games
@@ -90,6 +90,7 @@ if __name__ == "__main__":
 
         # every so often try and update
         if k > n_history * update_iterations:
+            print("   GLADIATOR TIME   ")
             update_iterations += 1
 
             # play 500 games against enemies
@@ -138,8 +139,9 @@ if __name__ == "__main__":
                 if _snakes_alive[0] or _snakes_alive[1]:
                     games_won += 1
             
-            # if we have won more than 40% then we update
-            if games_won / games_played >= 0.4:
+            # if we have won more than 30% then we update
+            if games_won / games_played >= 0.3:
+                print(f"   GLADIATOR SUCEEDED WITH {games_won / games_played}% WIN RATE   ")
                 # get name based on timestamp
                 name = "agent_" + str(datetime.datetime.now().strftime('%H%M%S_%d%m%Y'))
                 label = "models/" + name + ".pth"
@@ -157,6 +159,8 @@ if __name__ == "__main__":
                 # write info to ReadME
                 with open("models/ReadME.txt", "a") as f:
                     f.write(name + ", " + str(k + n_k) + ", " + str(n_steps) + ", " + str(learning_steps) + "\n")
+            else:
+                print(f"   GLADIATOR FAILED WITH {games_won / games_played}% WIN RATE   ")
         
         print(f"episode: {k}; time steps: {n_steps}; learning steps: {learning_steps}")
     
