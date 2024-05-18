@@ -62,3 +62,25 @@ class TeamRewards(Rewards):
 
     def get_reward(self, name, snake_id, episode):
         return self.reward_dict[name]
+    
+class GameTeamRewards(Rewards):
+    '''
+    Simple class to handle a fixed reward scheme with teammates
+    '''
+    def __init__(self):
+        self.reward_dict = {"another_turn": 0,
+                            "ate_food": 0,
+                            "ate_another_snake": 0,
+                            "other_snake_hit_body": 0,
+                            "won": 1,
+                            "won_with_teammate": 2,
+                            "died": -1,
+                            "hit_wall": 0,
+                            "hit_other_snake": 0,
+                            "hit_self": 0,
+                            "was_eaten": 0,
+                            "forbidden_move": 0,
+                            "starved": 0}
+
+    def get_reward(self, name, snake_id, episode):
+        return self.reward_dict[name]

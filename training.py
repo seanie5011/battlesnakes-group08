@@ -2,7 +2,7 @@ import numpy as np
 import random
 import datetime
 
-from battlesnakegym.rewards import TeamRewards
+from battlesnakegym.rewards import TeamRewards, GameTeamRewards
 from battlesnakegym.snake_gym import BattlesnakeGym
 from battlesnakegym.snake import Snake
 from main_utils import process_observation, get_real_move_from_oriented
@@ -19,23 +19,21 @@ actions_dict = {
 
 if __name__ == "__main__":
     # get environment
-    env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=TeamRewards(), is_teammate_game=True, verbose=VERBOSE)
+    env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=GameTeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 
     # get agent and enemy
-    agent_name = "agent0"
+    agent_name = "agent_211212_18052024"
     agent = PPO("agent", "models/" + agent_name + ".pth")
-    enemies = [PPO("enemy", "models/agent1.pth")]
+    enemies = [PPO("enemy", "models/agent_194852_18052024.pth")]
 
     # set properties
-    n_games = 100000
-    n_history = 10000
+    n_games = 10000
+    n_history = 1000
 
     # keeping track
-    learning_steps = 0  # update these as needed
-    n_steps = 0  # update these as needed
-    best_score = -100.0  # update these as needed
-    avg_score = -100.0  # update these as needed
-    score_history = []
+    learning_steps = 284  # update these as needed
+    n_steps = 582801  # update these as needed
+    n_k = 87830  # update these as needed
     update_iterations = 1
 
     # play all games
@@ -43,8 +41,12 @@ if __name__ == "__main__":
         # reset
         observation, _, _, _ = env.reset()
         done = False
-        score = 0
-        enemy = random.choice(enemies)
+        # 20% of the time choose any of the non-best enemies
+        if random.random() > 0.8 and len(enemies) > 1:
+            enemy = random.choice(enemies[1:])
+        # 80% of the time choose the best
+        else:
+            enemy = enemies[0]
 
         while not done:
             # holder for all actions we take
@@ -76,7 +78,6 @@ if __name__ == "__main__":
 
             # update and process observation for this agent
             n_steps += 1
-            score += reward[0]
             observation_, _ = process_observation(observation.copy(), 0)
 
             # store this in memory
@@ -87,29 +88,76 @@ if __name__ == "__main__":
                 agent.learn()
                 learning_steps += 1
 
-        # end of episode, set variables
-        score_history.append(score)
-        avg_score = np.mean(score_history[-n_history:])  # average over previous 100 games
-        if avg_score > best_score and k > n_history * update_iterations:
+        # every so often try and update
+        if k > n_history * update_iterations:
             update_iterations += 1
-            best_score = avg_score
-            # get name based on timestamp
-            name = "agent_" + str(datetime.datetime.now().strftime('%H%M%S_%d%m%Y'))
-            label = "models/" + name + ".pth"
-            # save this model
-            agent.save_model(n_steps, label)
-            # add to enemies list
-            # if less than 5, just append
-            if len(enemies) < 5:
-                enemies.append(PPO(name, label))
-            # otherwise, replace at random
-            else:
-                enemies[random.randrange(len(enemies))] = PPO(name, label)
+
+            # play 500 games against enemies
+            # track how many we have won
+            games_played = 0
+            games_won = 0
+            for _ in range(500):
+                games_played += 1
+                # reset
+                _observation, _, _, _ = env.reset()
+                _done = False
+                # 20% of the time choose any of the non-best enemies
+                if random.random() > 0.8 and len(enemies) > 1:
+                    _enemy = random.choice(enemies[1:])
+                # 80% of the time choose the best
+                else:
+                    _enemy = enemies[0]
+                while not _done:
+                    # holder for all actions we take
+                    _actions_to_take = []
+
+                    # get our agents action
+                    _observation_, _turns = process_observation(_observation.copy(), 0)
+                    _action, _, _, _ = agent.predict(_observation_)
+                    # process the action we took to get the action in gym coords
+                    _actions_to_take.append(actions_dict[get_real_move_from_oriented(_action, _turns)])
+
+                    # get our teammates action (just us but different observation)
+                    _observation_, _turns = process_observation(_observation.copy(), 1)
+                    _action_, _, _, _ = agent.predict(_observation_)
+                    _actions_to_take.append(actions_dict[get_real_move_from_oriented(_action_, _turns)])
+
+                    # get the enemies actions (them and teammate)
+                    _observation_, _turns = process_observation(_observation.copy(), 2)
+                    _action_, _, _, _ = _enemy.predict(_observation_)
+                    _actions_to_take.append(actions_dict[get_real_move_from_oriented(_action_, _turns)])
+                    _observation_, _turns = process_observation(_observation.copy(), 3)
+                    _action_, _, _, _ = _enemy.predict(_observation_)
+                    _actions_to_take.append(actions_dict[get_real_move_from_oriented(_action_, _turns)])
+
+                    # get new state
+                    _observation, _, _snakes_alive, _ = env.step(_actions_to_take)
+                    # done if (our agent is dead) or (only one snake alive) or (only two snakes are left and us and teammate are both either dead or alive)
+                    _done = (_snakes_alive[0] == False or np.sum(_snakes_alive) <= 1 or (np.sum(_snakes_alive) == 2 and _snakes_alive[0] == _snakes_alive[1]))
+                # if we won, count it
+                if _snakes_alive[0] or _snakes_alive[1]:
+                    games_won += 1
             
-            # write info to ReadME
-            with open("models/ReadME.txt", "a") as f:
-                f.write(name + ", " + str(best_score) + ", " + str(k) + ", " + str(n_steps) + ", " + str(learning_steps) + "\n")
+            # if we have won more than 40% then we update
+            if games_won / games_played >= 0.4:
+                # get name based on timestamp
+                name = "agent_" + str(datetime.datetime.now().strftime('%H%M%S_%d%m%Y'))
+                label = "models/" + name + ".pth"
+                # save this model
+                agent.save_model(n_steps, label)
+                # add to enemies list
+                # if less than 5, just append
+                if len(enemies) < 5:
+                    enemies.insert(0, PPO(name, label))
+                # otherwise, replace at random
+                else:
+                    enemies.insert(0, PPO(name, label))
+                    enemies.pop()
+                
+                # write info to ReadME
+                with open("models/ReadME.txt", "a") as f:
+                    f.write(name + ", " + str(k + n_k) + ", " + str(n_steps) + ", " + str(learning_steps) + "\n")
         
-        print(f"episode: {k}; best score: {best_score}; avg score: {avg_score}; time steps: {n_steps}; learning steps: {learning_steps}")
+        print(f"episode: {k}; time steps: {n_steps}; learning steps: {learning_steps}")
     
     # plot results

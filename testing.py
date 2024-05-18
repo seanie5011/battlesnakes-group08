@@ -20,8 +20,8 @@ actions_dict = {
 env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=TeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 observation, _, _, _ = env.reset()
 done = False
-agent = PPO("agent0", "models/agent0.pth")
-enemy = PPO("agent1", "models/agent1.pth")
+agent = PPO("agent0", "models/agent_223002_18052024.pth")
+enemy = PPO("agent1", "models/agent_222928_18052024.pth")
 
 # rendering
 if RENDER:
