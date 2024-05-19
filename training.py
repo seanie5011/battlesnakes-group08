@@ -22,18 +22,18 @@ if __name__ == "__main__":
     env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=GameTeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 
     # get agent and enemy
-    agent_name = "agent_230856_18052024"
+    agent_name = "agent_104646_19052024"
     agent = PPO("agent", "models/" + agent_name + ".pth")
-    enemies = [PPO("enemy", "models/agent_223002_18052024.pth")]
+    enemies = [PPO("enemy", "models/agent_104646_19052024.pth"), PPO("enemy", "models/agent_095112_19052024.pth"), PPO("enemy", "models/agent_085535_19052024.pth"), PPO("enemy", "models/agent_080324_19052024.pth"), PPO("enemy", "models/agent_071113_19052024.pth")]
 
     # set properties
-    n_games = 400000
+    n_games = 100000
     n_history = 10000
 
     # keeping track
-    n_k = 88831  # update these as needed
-    n_steps = 592873  # update these as needed
-    learning_steps = 289  # update these as needed
+    n_k = 328832  # update these as needed
+    n_steps = 2666329  # update these as needed
+    learning_steps = 1301  # update these as needed
     update_iterations = 1
 
     # play all games
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             
             # if we have won more than 30% then we update
             if games_won / games_played >= 0.3:
-                print(f"   GLADIATOR SUCEEDED WITH {games_won / games_played}% WIN RATE   ")
+                print(f"   GLADIATOR SUCEEDED WITH {100.0 * games_won / games_played}% WIN RATE   ")
                 # get name based on timestamp
                 name = "agent_" + str(datetime.datetime.now().strftime('%H%M%S_%d%m%Y'))
                 label = "models/" + name + ".pth"
@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 with open("models/ReadME.txt", "a") as f:
                     f.write(name + ", " + str(k + n_k) + ", " + str(n_steps) + ", " + str(learning_steps) + "\n")
             else:
-                print(f"   GLADIATOR FAILED WITH {games_won / games_played}% WIN RATE   ")
+                print(f"   GLADIATOR FAILED WITH {100.0 * games_won / games_played}% WIN RATE   ")
         
         print(f"episode: {k}; time steps: {n_steps}; learning steps: {learning_steps}")
     

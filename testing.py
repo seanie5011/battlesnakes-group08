@@ -4,7 +4,7 @@ import numpy as np
 from battlesnakegym.rewards import TeamRewards
 from battlesnakegym.snake_gym import BattlesnakeGym
 from battlesnakegym.snake import Snake
-from main_utils import process_observation, get_real_move_from_oriented
+from main_utils import process_observation, get_real_move_from_oriented, get_safe_moves_from_observation
 from ppo.ppo import PPO
 
 RENDER = 1
@@ -20,8 +20,8 @@ actions_dict = {
 env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=TeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 observation, _, _, _ = env.reset()
 done = False
-agent = PPO("agent0", "models/agent_223002_18052024.pth")
-enemy = PPO("agent1", "models/agent_222928_18052024.pth")
+agent = PPO("agent0", "models/agent_104646_19052024.pth")
+enemy = PPO("agent1", "models/agent_104646_19052024.pth")
 
 # rendering
 if RENDER:
@@ -34,6 +34,7 @@ while not done:
 
     # get our agents action
     observation_, turns = process_observation(observation.copy(), 0)
+    get_safe_moves_from_observation(observation_)
     action, _, _, _ = agent.predict(observation_)
     # process the action we took to get the action in gym coords
     actions_to_take.append(actions_dict[get_real_move_from_oriented(action, turns)])

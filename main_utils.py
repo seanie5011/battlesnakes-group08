@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 def process_observation(_observation, current_snake_index):
     """
@@ -125,3 +126,90 @@ def get_real_move_from_oriented(move: int, turns: int) -> str:
     # use this with number of turns to get index in list
     move_index = (move_conversion[move] + turns) % len(moves)
     return moves[move_index]
+
+def get_safe_moves_from_observation(observation):
+    """
+    A simple controller that simply only takes safe moves, killing enemies if it happens upon them.
+    """
+    # assume all moves are valid at the start
+    is_move_safe = {"up": True, "down": True, "left": True, "right": True}
+    moves_dict = {"up": 0, "down": 1, "left": 2, "right": 3}
+
+    # fix observation
+    observation = observation.reshape(11, 11, 5)
+
+    # get our head and body
+    head = np.argwhere(observation[:,:,1] == 1)[0]
+    body = np.argwhere(observation[:,:,1] > 1)
+    length = len(body) + 1  # +1 for head
+
+    # Prevent the Battlesnake from moving out of bounds
+    # if width is 11, then maximum x coordinate is 10
+    # for this, topleft is 0,0 - note that x is index 1 and y is index 0
+    board_width = observation.shape[1]
+    board_height = observation.shape[0]
+    if head[1] + 1 == board_width:
+        is_move_safe["right"] = False
+    if head[1] == 0:
+        is_move_safe["left"] = False
+    if head[0] == 0:
+        is_move_safe["up"] = False
+    if head[0] + 1 == board_height:
+        is_move_safe["down"] = False
+
+    # Prevent the Battlesnake from colliding with itself
+    # check each bodypart and make sure we will not collide with it in the next move
+    for bodypart in body:
+        if bodypart[1] == head[1] - 1 and bodypart[0] == head[0]:  # bodypart is directly left of head, don't move left
+            is_move_safe["left"] = False
+        if bodypart[1] == head[1] + 1 and bodypart[0] == head[0]:  # bodypart is directly right of head, don't move right
+            is_move_safe["right"] = False
+        if bodypart[0] == head[0] - 1 and bodypart[1] == head[1]:  # bodypart is directly above head, don't move up
+            is_move_safe["up"] = False
+        if bodypart[0] == head[0] + 1 and bodypart[1] == head[1]:  # bodypart is directly below head, don't move down
+            is_move_safe["down"] = False
+    
+    # Prevent the Battlesnake from colliding with its teammate
+    # check our teammate and make sure we do not collide with any of their bodyparts (including head) in the next move
+    body_ = np.argwhere(observation[:,:,2] >= 1)
+    for bodypart in body_:
+        if bodypart[1] == head[1] - 1 and bodypart[0] == head[0]:  # bodypart is directly left of head, don't move left
+            is_move_safe["left"] = False
+        if bodypart[1] == head[1] + 1 and bodypart[0] == head[0]:  # bodypart is directly right of head, don't move right
+            is_move_safe["right"] = False
+        if bodypart[0] == head[0] - 1 and bodypart[1] == head[1]:  # bodypart is directly above head, don't move up
+            is_move_safe["up"] = False
+        if bodypart[0] == head[0] + 1 and bodypart[1] == head[1]:  # bodypart is directly below head, don't move down
+            is_move_safe["down"] = False
+
+    # Prevent the Battlesnake from colliding with other Battlesnakes
+    # check every opponent and make sure we do not collide with any of their bodyparts (except head if they are smaller than us) in the next move
+    opponents = [np.argwhere(observation[:,:,3] >= 1), np.argwhere(observation[:,:,4] >= 1)]
+    lengths = [len(opponents[0]), len(opponents[1])]
+    for opponent in opponents:
+        # check each opponents bodypart (including their head)
+        for i, bodypart in enumerate(opponent):
+            # if not looking at head and they are bigger than us
+            if not (i == 0 and lengths[i] < length):
+                if bodypart[1] == head[1] - 1 and bodypart[0] == head[0]:  # bodypart is directly left of head, don't move left
+                    is_move_safe["left"] = False
+                if bodypart[1] == head[1] + 1 and bodypart[0] == head[0]:  # bodypart is directly right of head, don't move right
+                    is_move_safe["right"] = False
+                if bodypart[0] == head[0] - 1 and bodypart[1] == head[1]:  # bodypart is directly above head, don't move up
+                    is_move_safe["up"] = False
+                if bodypart[0] == head[0] + 1 and bodypart[1] == head[1]:  # bodypart is directly below head, don't move down
+                    is_move_safe["down"] = False
+
+    # Are there any safe moves left?
+    safe_moves = []
+    for move, isSafe in is_move_safe.items():
+        if isSafe:
+            safe_moves.append(move)
+
+    if len(safe_moves) == 0:
+        print(f"No safe moves detected! Moving down")
+        return moves_dict["down"]
+
+    # want to get the best move
+    best_move = random.choice(safe_moves)  # by default make random move
+    return moves_dict[best_move]
