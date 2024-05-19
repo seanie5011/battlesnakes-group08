@@ -7,7 +7,7 @@ def process_observation(_observation, current_snake_index):
     Assumes a 4-player 11x11 game.
     """
 
-    observation = _observation.copy()
+    observation = _observation.copy().reshape(11, 11, 5)
 
     # get this snakes particular 11x11
     # plus 1 as the zero index is food
@@ -127,10 +127,14 @@ def get_real_move_from_oriented(move: int, turns: int) -> str:
     move_index = (move_conversion[move] + turns) % len(moves)
     return moves[move_index]
 
-def get_safe_moves_from_observation(observation):
+def get_safe_moves_from_observation(observation, current_snake_index):
     """
     A simple controller that simply only takes safe moves, killing enemies if it happens upon them.
     """
+    # check we are even alive
+    if len(np.argwhere(observation[:,:,current_snake_index + 1] == 1)) <= 0:
+        return 1
+
     # assume all moves are valid at the start
     is_move_safe = {"up": True, "down": True, "left": True, "right": True}
     moves_dict = {"up": 0, "down": 1, "left": 2, "right": 3}
@@ -139,8 +143,8 @@ def get_safe_moves_from_observation(observation):
     observation = observation.reshape(11, 11, 5)
 
     # get our head and body
-    head = np.argwhere(observation[:,:,1] == 1)[0]
-    body = np.argwhere(observation[:,:,1] > 1)
+    head = np.argwhere(observation[:,:,current_snake_index + 1] == 1)[0]
+    body = np.argwhere(observation[:,:,current_snake_index + 1] > 1)
     length = len(body) + 1  # +1 for head
 
     # Prevent the Battlesnake from moving out of bounds
@@ -168,10 +172,23 @@ def get_safe_moves_from_observation(observation):
             is_move_safe["up"] = False
         if bodypart[0] == head[0] + 1 and bodypart[1] == head[1]:  # bodypart is directly below head, don't move down
             is_move_safe["down"] = False
+
+    # 0 and 1 are teammates, 2 and 3 are teammates
+    teammate_dict = {
+        0: 1,
+        1: 0,
+        2: 3,
+        3: 2
+    }
+    teammate_index = teammate_dict[current_snake_index]
+    # keep track of which indices we have looked at
+    indices = [0, 1, 2, 3]
+    indices.remove(current_snake_index)
+    indices.remove(teammate_index)
     
     # Prevent the Battlesnake from colliding with its teammate
     # check our teammate and make sure we do not collide with any of their bodyparts (including head) in the next move
-    body_ = np.argwhere(observation[:,:,2] >= 1)
+    body_ = np.argwhere(observation[:,:,teammate_index + 1] >= 1)
     for bodypart in body_:
         if bodypart[1] == head[1] - 1 and bodypart[0] == head[0]:  # bodypart is directly left of head, don't move left
             is_move_safe["left"] = False
@@ -184,7 +201,7 @@ def get_safe_moves_from_observation(observation):
 
     # Prevent the Battlesnake from colliding with other Battlesnakes
     # check every opponent and make sure we do not collide with any of their bodyparts (except head if they are smaller than us) in the next move
-    opponents = [np.argwhere(observation[:,:,3] >= 1), np.argwhere(observation[:,:,4] >= 1)]
+    opponents = [np.argwhere(observation[:,:,indices.pop() + 1] >= 1), np.argwhere(observation[:,:,indices.pop() + 1] >= 1)]
     lengths = [len(opponents[0]), len(opponents[1])]
     for opponent in opponents:
         # check each opponents bodypart (including their head)
@@ -205,11 +222,51 @@ def get_safe_moves_from_observation(observation):
     for move, isSafe in is_move_safe.items():
         if isSafe:
             safe_moves.append(move)
-
+    
     if len(safe_moves) == 0:
-        print(f"No safe moves detected! Moving down")
         return moves_dict["down"]
 
     # want to get the best move
     best_move = random.choice(safe_moves)  # by default make random move
     return moves_dict[best_move]
+
+def get_observation_from_state(game_state: dict, my_name: str, teammates_name: str, enemy_ids: list[str]):
+    # create observation as 11x11 grid with 5 channels
+    observation = np.zeros((11, 11, 5), dtype=np.uint8)
+
+    # apply food
+    for food_dict in game_state["board"]["food"]:
+        y, x = food_dict["x"], food_dict["y"]  # indices swap for numpy array
+        observation[x,y,0] = 1
+
+    # apply each snake
+    for snake in game_state["board"]["snakes"]:
+        # get the index for the observation
+        # we are always 0
+        # teammate is always 1
+        # enemies are kept constant
+        if snake["name"] == my_name:
+            index = 1
+        elif snake["name"] == teammates_name:
+            index = 2
+        elif snake["id"] == enemy_ids[0]:
+            index = 3
+        elif snake["id"] == enemy_ids[1]:
+            index = 4
+        
+        # now apply each snakes bodypart
+        for body_index, bodypart in enumerate(snake["body"]):
+            y, x = bodypart["x"], bodypart["y"]  # indices swap for numpy array
+            observation[x,y,index] = body_index + 1  # head is 1, each subsequent bodypart is +1
+        # make sure head is set to 1
+        y, x = snake["head"]["x"], snake["head"]["y"]
+        observation[x,y,index] = 1
+        # make sure neck is set to 2
+        y, x = snake["body"][1]["x"], snake["body"][1]["y"]
+        observation[x,y,index] = 1
+
+    # flip up down to be correct
+    observation = np.flipud(observation)
+
+    # reshape to 5x11x11 when done
+    return observation.reshape(5, 11, 11).copy()

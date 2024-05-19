@@ -20,8 +20,7 @@ actions_dict = {
 env = BattlesnakeGym(map_size=(11, 11), number_of_snakes=4, rewards=TeamRewards(), is_teammate_game=True, verbose=VERBOSE)
 observation, _, _, _ = env.reset()
 done = False
-agent = PPO("agent0", "models/agent_104646_19052024.pth")
-enemy = PPO("agent1", "models/agent_104646_19052024.pth")
+agent = PPO("agent0", "models/agent_19052024_162159.pth")
 
 # rendering
 if RENDER:
@@ -34,7 +33,6 @@ while not done:
 
     # get our agents action
     observation_, turns = process_observation(observation.copy(), 0)
-    get_safe_moves_from_observation(observation_)
     action, _, _, _ = agent.predict(observation_)
     # process the action we took to get the action in gym coords
     actions_to_take.append(actions_dict[get_real_move_from_oriented(action, turns)])
@@ -47,14 +45,12 @@ while not done:
     print(f"agent b; turns {turns}; action: {action}; result: {get_real_move_from_oriented(action, turns)}; took: {actions_dict[get_real_move_from_oriented(action, turns)]}")
 
     # get the enemies actions (them and teammate)
-    observation_, turns = process_observation(observation.copy(), 2)
-    action, _, _, _ = enemy.predict(observation_)
-    actions_to_take.append(actions_dict[get_real_move_from_oriented(action, turns)])
-    print(f"agent c; turns {turns}; action: {action}; result: {get_real_move_from_oriented(action, turns)}; took: {actions_dict[get_real_move_from_oriented(action, turns)]}")
-    observation_, turns = process_observation(observation.copy(), 3)
-    action, _, _, _ = enemy.predict(observation_)
-    actions_to_take.append(actions_dict[get_real_move_from_oriented(action, turns)])
-    print(f"agent d; turns {turns}; action: {action}; result: {get_real_move_from_oriented(action, turns)}; took: {actions_dict[get_real_move_from_oriented(action, turns)]}")
+    action = get_safe_moves_from_observation(observation.copy(), 2)
+    actions_to_take.append(action)
+    print(f"agent c; turns: null; action: null; result: null; took: {action}")
+    action = get_safe_moves_from_observation(observation.copy(), 3)
+    actions_to_take.append(action)
+    print(f"agent d; turns: null; action: null; result: null; took: {action}")
 
     # get new state
     observation, reward, snakes_alive, info = env.step(actions_to_take)
